@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import {View} from 'react-native';
 import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -13,7 +13,7 @@ import {
   Text,
 } from '@/components';
 import {lessonsApi} from '@/api';
-import {useLessonSession} from '@/hooks';
+import {useLessonSession, useRecordActivity} from '@/hooks';
 import {useAuth, useTheme} from '@/providers';
 import type {RootStackParamList} from '@/navigation/types';
 
@@ -37,14 +37,26 @@ export const LessonScreen = () => {
     mutationFn: (score: number) =>
       lessonsApi.complete({userId: user!.id, lessonId: params.lessonId, score}),
   });
+  const recordActivity = useRecordActivity();
+
+  // The finish effect writes progress and advances the streak, so it must run
+  // exactly once even if the effect is re-invoked (StrictMode, remounts).
+  const finalizedRef = useRef(false);
 
   useEffect(() => {
-    if (!session.isFinished) {
+    if (!session.isFinished || finalizedRef.current) {
       return;
     }
+    finalizedRef.current = true;
+
     const score = Math.round(session.accuracy * 100);
     if (user?.id) {
       completeLesson.mutate(score);
+      recordActivity.mutate({
+        minutes: session.minutesStudied,
+        xp: session.xp,
+        lessons: 1,
+      });
     }
     navigation.replace('LessonResult', {
       lessonId: params.lessonId,
@@ -89,9 +101,7 @@ export const LessonScreen = () => {
         <ExerciseRenderer
           key={session.current.id}
           exercise={session.current}
-          onSubmit={(isCorrect, answer) =>
-            session.submit({isCorrect, userAnswer: answer, timeSpentMs: 0})
-          }
+          onSubmit={(isCorrect, answer) => session.submit({isCorrect, userAnswer: answer})}
         />
       )}
     </Screen>

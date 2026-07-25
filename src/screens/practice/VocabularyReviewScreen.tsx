@@ -1,9 +1,11 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import {Button, Card, EmptyState, ErrorView, LoadingView, ProgressBar, Screen, Text} from '@/components';
 import {vocabularyApi} from '@/api';
+import {XP_PER_VOCABULARY_REVIEW} from '@/constants';
+import {useRecordActivity} from '@/hooks';
 import {useAuth, useTheme} from '@/providers';
 import {scheduleNextReview} from '@/utils';
 
@@ -29,6 +31,29 @@ export const VocabularyReviewScreen = () => {
   });
 
   const saveReview = useMutation({mutationFn: vocabularyApi.saveReview});
+  const recordActivity = useRecordActivity();
+
+  const items = dueQuery.data ?? [];
+  const current = items[index];
+  const isFinished = items.length > 0 && index >= items.length;
+
+  const startedAtRef = useRef(Date.now());
+  const finalizedRef = useRef(false);
+
+  // Reviews earn XP and keep the streak alive, same as a lesson does.
+  useEffect(() => {
+    if (!isFinished || finalizedRef.current || !user?.id) {
+      return;
+    }
+    finalizedRef.current = true;
+    const elapsedMs = Date.now() - startedAtRef.current;
+    recordActivity.mutate({
+      minutes: Math.max(1, Math.round(elapsedMs / 60_000)),
+      xp: items.length * XP_PER_VOCABULARY_REVIEW,
+      lessons: 0,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFinished, user?.id]);
 
   if (dueQuery.isLoading) {
     return <LoadingView />;
@@ -36,9 +61,6 @@ export const VocabularyReviewScreen = () => {
   if (dueQuery.isError) {
     return <ErrorView error={dueQuery.error} onRetry={dueQuery.refetch} />;
   }
-
-  const items = dueQuery.data ?? [];
-  const current = items[index];
 
   if (!items.length) {
     return (

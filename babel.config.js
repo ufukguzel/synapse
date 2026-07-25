@@ -16,7 +16,7 @@ module.exports = {
         moduleName: '@env',
         path: '.env',
         safe: false,
-        allowUndefined: false,
+        allowUndefined: true,
       },
     ],
     // Reanimated 4 requires this plugin to be LAST.

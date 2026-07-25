@@ -43,6 +43,29 @@ values
    3)
 on conflict do nothing;
 
+-- Lesson 2 exercises the remaining kinds, one of each.
+insert into public.exercises (id, lesson_id, kind, prompt, payload, audio_url, order_index)
+values
+  ('ccccccc1-0000-0000-0000-000000000001', 'bbbbbbb1-0000-0000-0000-000000000002', 'match_pairs',
+   'Match each phrase with its Turkish meaning.',
+   '{"pairs":[{"left":"My name is…","right":"Benim adım…"},{"left":"Nice to meet you","right":"Tanıştığımıza memnun oldum"},{"left":"Where are you from?","right":"Nerelisin?"},{"left":"I am from Türkiye","right":"Ben Türkiyeliyim"}]}',
+   null, 1),
+  ('ccccccc1-0000-0000-0000-000000000002', 'bbbbbbb1-0000-0000-0000-000000000002', 'translate',
+   'Translate the sentence.',
+   '{"sourceText":"Merhaba, benim adım Ayşe.","acceptedAnswers":["Hello, my name is Ayse.","Hi, my name is Ayse.","Hello, my name is Ayşe."],"direction":"tr-en"}',
+   null, 2),
+  ('ccccccc1-0000-0000-0000-000000000003', 'bbbbbbb1-0000-0000-0000-000000000002', 'listen_type',
+   'Type what you hear.',
+   '{"expectedText":"Where are you from?","tolerance":1}',
+   -- Point this at a clip in your Supabase storage bucket. With no clip (or no
+   -- audio driver registered) the exercise degrades to a spelling drill.
+   null, 3),
+  ('ccccccc1-0000-0000-0000-000000000004', 'bbbbbbb1-0000-0000-0000-000000000002', 'speak_repeat',
+   'Say the sentence out loud.',
+   '{"expectedText":"Nice to meet you.","minConfidence":0.6}',
+   null, 4)
+on conflict (id) do nothing;
+
 insert into public.vocabulary_items (headword, phonetic, meaning, translation, example_sentence, level, tags)
 values
   ('greeting', '/ˈɡriː.tɪŋ/', 'Something you say when you meet someone.', 'selamlama',

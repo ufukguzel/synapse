@@ -63,7 +63,8 @@ src/
 ├── providers/    # Theme, Auth, QueryClient
 ├── screens/      # auth · onboarding · home · lesson · practice · profile
 ├── services/
-│   └── supabase/ # Client instance + auth wrapper
+│   ├── supabase/ # Client instance + auth wrapper
+│   └── media/    # Audio / speech driver registries (see docs/MEDIA.md)
 ├── theme/        # Design tokens: colors, typography, spacing, radius, shadow
 ├── types/        # Database types + exercise payload types
 └── utils/        # SRS (SM-2), answer grading, validation, formatting
@@ -105,8 +106,16 @@ npx supabase gen types typescript --project-id <ref> --schema public > src/types
 
 `exercises.payload` is `jsonb`; its shape depends on `exercises.kind`. The TypeScript contract for each kind lives in `src/types/exercise.ts`, and `ExerciseRenderer` maps a kind to its component. Adding an exercise type means: extend the `exercise_kind` enum, add a payload interface, add a component, register it in the renderer.
 
-Implemented: `multiple_choice`, `fill_blank`, `word_order`.
-Stubbed (falls back to a "coming soon" card): `match_pairs`, `listen_type`, `speak_repeat`, `translate`.
+All seven kinds are implemented: `multiple_choice`, `fill_blank`, `word_order`,
+`match_pairs`, `translate`, `listen_type`, `speak_repeat`. The `switch` in
+`ExerciseRenderer` is exhaustive over `ExerciseKind`, so adding a kind to the enum
+breaks the typecheck until it has a renderer.
+
+`listen_type` and `speak_repeat` reach the device through the audio / speech
+**drivers** in `src/services/media`. No driver ships registered — until one is,
+`listen_type` degrades to a spelling drill and `speak_repeat` to a self-assessed
+check, so a lesson stays playable either way. See [docs/MEDIA.md](docs/MEDIA.md)
+for how to wire a real one.
 
 ## Design system
 
@@ -118,12 +127,16 @@ propagates everywhere — no hard-coded hex values in screens.
 ## Status
 
 Working skeleton: auth flow, onboarding, course browsing, a playable lesson loop with
-hearts/XP, SM-2 vocabulary review, profile and settings. Screens are functional but
-**not yet styled to the final designs**.
+hearts/XP, all seven exercise types, SM-2 vocabulary review, streak tracking, profile
+and settings. Screens are functional but **not yet styled to the final designs**.
+
+Finishing a lesson or a review session calls the `record_activity` RPC, which writes
+today's minutes/XP/lesson count and advances the streak. Study time is measured
+per exercise — each one is timed from when it appears to when it is answered.
 
 Next up:
 - [ ] Apply the design files (colors, type, spacing, icons, illustrations)
-- [ ] Remaining exercise types (audio + speech)
-- [ ] Call `record_activity` when a lesson completes
+- [ ] Register real audio / speech drivers (see [docs/MEDIA.md](docs/MEDIA.md))
 - [ ] Push notifications for the daily reminder
 - [ ] Offline lesson cache
+- [ ] End the lesson when hearts run out (`isFailed` is computed but not acted on)

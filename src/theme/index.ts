@@ -1,0 +1,20 @@
+import {AppColors, darkColors, lightColors, palette} from './colors';
+import {radius, shadow, spacing} from './spacing';
+import {fontFamily, fontWeight, textVariants} from './typography';
+
+export const buildTheme = (scheme: 'light' | 'dark') => ({
+  scheme,
+  colors: scheme === 'dark' ? darkColors : lightColors,
+  palette,
+  spacing,
+  radius,
+  shadow,
+  fontFamily,
+  fontWeight,
+  textVariants,
+});
+
+export type AppTheme = ReturnType<typeof buildTheme>;
+export type {AppColors};
+export {darkColors, lightColors, palette, radius, shadow, spacing, fontFamily, fontWeight, textVariants};
+export * from './typography';

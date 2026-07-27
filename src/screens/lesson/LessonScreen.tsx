@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {View} from 'react-native';
+import {StyleSheet, View} from 'react-native';
 import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useMutation, useQuery} from '@tanstack/react-query';
@@ -13,7 +13,8 @@ import {
   Text,
 } from '@/components';
 import {lessonsApi} from '@/api';
-import {useLessonSession} from '@/hooks';
+import {HEARTS_PER_SESSION} from '@/constants';
+import {useLessonSession, useRecordActivity} from '@/hooks';
 import {useAuth, useTheme} from '@/providers';
 import type {RootStackParamList} from '@/navigation/types';
 
@@ -33,26 +34,43 @@ export const LessonScreen = () => {
 
   const session = useLessonSession(exercisesQuery.data ?? []);
 
+  const lessonQuery = useQuery({
+    queryKey: ['lesson', params.lessonId],
+    queryFn: () => lessonsApi.get(params.lessonId),
+  });
+
   const completeLesson = useMutation({
     mutationFn: (score: number) =>
       lessonsApi.complete({userId: user!.id, lessonId: params.lessonId, score}),
   });
 
+  const recordActivity = useRecordActivity();
+
   useEffect(() => {
-    if (!session.isFinished) {
+    // Running out of hearts ends the session too, otherwise the hearts counter is
+    // decoration and a learner can miss every question and still finish.
+    if (!session.isFinished && !session.isFailed) {
       return;
     }
-    const score = Math.round(session.accuracy * 100);
-    if (user?.id) {
-      completeLesson.mutate(score);
+    // A failed run is not a completed lesson, so don't record progress for it.
+    if (session.isFinished && !session.isFailed && user?.id) {
+      completeLesson.mutate(Math.round(session.accuracy * 100));
+      // Feeds the streak, the XP total and today's goal bar. Without this the
+      // gamification numbers stayed at zero no matter how much was studied.
+      recordActivity.mutate({
+        minutes: lessonQuery.data?.estimated_minutes ?? 0,
+        xp: session.xp,
+        lessons: 1,
+      });
     }
     navigation.replace('LessonResult', {
       lessonId: params.lessonId,
       xp: session.xp,
       accuracy: session.accuracy,
+      failed: session.isFailed,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.isFinished]);
+  }, [session.isFinished, session.isFailed]);
 
   if (exercisesQuery.isLoading) {
     return <LoadingView />;
@@ -73,16 +91,21 @@ export const LessonScreen = () => {
 
   return (
     <Screen>
-      <View style={{gap: theme.spacing.sm, marginBottom: theme.spacing.lg}}>
-        <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-          <Text variant="caption" color={theme.colors.textSecondary}>
-            {Math.min(session.index + 1, session.exercises.length)} / {session.exercises.length}
-          </Text>
-          <Text variant="caption" color={theme.colors.danger}>
-            {'♥'.repeat(session.hearts)}
+      <View style={{gap: theme.spacing.md, marginBottom: theme.spacing.xl}}>
+        <View style={styles.topRow}>
+          <ProgressBar value={session.progress} style={styles.flex} />
+          {/* Spent hearts stay visible as dimmed glyphs so the cost is legible. */}
+          <Text variant="bodyStrong">
+            {'❤️'.repeat(session.hearts)}
+            <Text variant="bodyStrong" color={theme.colors.textTertiary}>
+              {'🤍'.repeat(Math.max(0, HEARTS_PER_SESSION - session.hearts))}
+            </Text>
           </Text>
         </View>
-        <ProgressBar value={session.progress} />
+        <Text variant="caption" color={theme.colors.textTertiary}>
+          Question {Math.min(session.index + 1, session.exercises.length)} of{' '}
+          {session.exercises.length}
+        </Text>
       </View>
 
       {session.current && (
@@ -97,3 +120,8 @@ export const LessonScreen = () => {
     </Screen>
   );
 };
+
+const styles = StyleSheet.create({
+  flex: {flex: 1},
+  topRow: {flexDirection: 'row', alignItems: 'center', gap: 12},
+});

@@ -1,5 +1,5 @@
 import {supabase} from '@/services/supabase';
-import type {UserVocabulary, VocabularyItem} from '@/types';
+import type {CefrLevel, UserVocabulary, VocabularyItem} from '@/types';
 
 export interface DueReviewItem extends UserVocabulary {
   vocabulary_items: VocabularyItem | null;
@@ -40,6 +40,43 @@ export const vocabularyApi = {
     if (error) {
       throw error;
     }
+  },
+
+  /**
+   * Vocabulary the user has not started yet. `vocabulary_items` has no link to
+   * lessons (only `level` and `tags`), so "new words" is scoped by level and
+   * filtered against what is already enrolled.
+   */
+  async availableToLearn(userId: string, level: CefrLevel, limit = 10): Promise<VocabularyItem[]> {
+    const [{data: enrolled, error: enrolledError}, {data: items, error: itemsError}] =
+      await Promise.all([
+        supabase.from('user_vocabulary').select('vocabulary_id').eq('user_id', userId),
+        supabase.from('vocabulary_items').select('*').eq('level', level),
+      ]);
+    if (enrolledError) {
+      throw enrolledError;
+    }
+    if (itemsError) {
+      throw itemsError;
+    }
+
+    const taken = new Set((enrolled ?? []).map(row => row.vocabulary_id));
+    return (items ?? []).filter(item => !taken.has(item.id)).slice(0, limit);
+  },
+
+  /** Enrols one word into the user's review queue, due immediately. */
+  async enroll(vocabularyId: string) {
+    const {error} = await supabase.rpc('enroll_vocabulary', {p_vocabulary_id: vocabularyId});
+    if (error) {
+      throw error;
+    }
+  },
+
+  async enrollMany(vocabularyIds: string[]) {
+    for (const id of vocabularyIds) {
+      await vocabularyApi.enroll(id);
+    }
+    return vocabularyIds.length;
   },
 
   async toggleFavorite(id: string, isFavorite: boolean) {

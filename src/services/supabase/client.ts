@@ -11,12 +11,34 @@ import type {Database} from '@/types';
 const FALLBACK_URL = 'https://placeholder.supabase.co';
 const FALLBACK_KEY = 'placeholder-anon-key';
 
-export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+/**
+ * A copied-but-unedited .env is the common case, not the missing-file case: the
+ * values are then present-but-fake, so a truthiness check reports the app as
+ * configured and the warning below never fires. Every request instead fails with
+ * an opaque network error, which is a much worse first-run experience.
+ */
+const isPlaceholder = (value: string | undefined): boolean => {
+  if (!value) {
+    return true;
+  }
+  const trimmed = value.trim();
+  return (
+    trimmed === '' ||
+    trimmed.includes('xxxx') ||
+    trimmed.includes('placeholder') ||
+    // `.env.example` truncates the sample JWT with a literal "....".
+    trimmed.includes('....')
+  );
+};
+
+export const isSupabaseConfigured =
+  !isPlaceholder(SUPABASE_URL) && !isPlaceholder(SUPABASE_ANON_KEY);
 
 if (!isSupabaseConfigured && __DEV__) {
   console.warn(
-    '[Synapse] SUPABASE_URL / SUPABASE_ANON_KEY are missing. Copy .env.example to .env ' +
-      'and fill them in, then restart Metro with `npm run start:reset`.',
+    '[Synapse] SUPABASE_URL / SUPABASE_ANON_KEY are missing or still the .env.example ' +
+      'placeholders. Fill them in with real project credentials, then restart Metro with ' +
+      '`npm run start:reset`. Until then every request will fail with a network error.',
   );
 }
 

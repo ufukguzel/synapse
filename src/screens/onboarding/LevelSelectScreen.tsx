@@ -1,8 +1,8 @@
 import {useState} from 'react';
-import {Pressable, View} from 'react-native';
+import {View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {Badge, Button, Card, Screen, Text} from '@/components';
+import {Badge, Button, OptionRow, Screen, StepHeader} from '@/components';
 import {CEFR_LABELS, CEFR_LEVELS} from '@/constants';
 import {useUpdateProfile} from '@/hooks';
 import {useTheme} from '@/providers';
@@ -23,40 +23,33 @@ export const LevelSelectScreen = () => {
   };
 
   return (
-    <Screen scroll>
-      <View style={{gap: theme.spacing.base}}>
-        <Text variant="h1">What's your level?</Text>
-        <Text variant="body" color={theme.colors.textSecondary}>
-          Pick the one that feels closest. You can change it any time.
-        </Text>
+    <Screen scroll contentContainerStyle={{padding: theme.spacing.base}}>
+      <View style={{gap: theme.spacing.lg}}>
+        <StepHeader
+          step={2}
+          total={4}
+          title="What's your level?"
+          subtitle="Pick the one that feels closest. You can change it any time."
+        />
 
-        {CEFR_LEVELS.map(level => {
-          const isActive = selected === level;
-          return (
-            <Pressable key={level} onPress={() => setSelected(level)}>
-              <Card
-                style={{
-                  borderColor: isActive ? theme.colors.primary : theme.colors.border,
-                  borderWidth: isActive ? 2 : 1,
-                  gap: theme.spacing.xs,
-                }}>
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm}}>
-                  <Badge label={level} tone={isActive ? 'primary' : 'neutral'} />
-                  <Text variant="bodyStrong">{CEFR_LABELS[level].title}</Text>
-                </View>
-                <Text variant="caption" color={theme.colors.textSecondary}>
-                  {CEFR_LABELS[level].description}
-                </Text>
-              </Card>
-            </Pressable>
-          );
-        })}
+        <View style={{gap: theme.spacing.md}}>
+          {CEFR_LEVELS.map(level => (
+            <OptionRow
+              key={level}
+              title={CEFR_LABELS[level].title}
+              description={CEFR_LABELS[level].description}
+              selected={selected === level}
+              onPress={() => setSelected(level)}
+              leading={<Badge label={level} tone="primary" solid={selected === level} />}
+            />
+          ))}
+        </View>
 
         <Button
           label="Continue"
+          size="lg"
           loading={updateProfile.isPending}
           onPress={onContinue}
-          style={{marginTop: theme.spacing.base}}
         />
       </View>
     </Screen>

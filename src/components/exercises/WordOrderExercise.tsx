@@ -3,6 +3,7 @@ import {Pressable, View} from 'react-native';
 import {Button, Text} from '@/components/ui';
 import {useTheme} from '@/providers';
 import type {WordOrderPayload} from '@/types';
+import {AnswerFeedback} from './AnswerFeedback';
 
 export interface WordOrderExerciseProps {
   prompt: string;
@@ -22,15 +23,19 @@ const TokenChip = ({label, disabled, onPress}: TokenChipProps) => {
     <Pressable
       disabled={disabled}
       onPress={onPress}
-      style={{
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
+      style={({pressed}) => ({
+        paddingHorizontal: theme.spacing.base,
+        paddingVertical: theme.spacing.md,
         borderRadius: theme.radius.md,
-        borderWidth: 1,
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1.5,
         borderColor: theme.colors.border,
-        backgroundColor: theme.colors.surfaceAlt,
-      }}>
-      <Text variant="body">{label}</Text>
+        // Solid bottom edge matches the tactile feel of Button.
+        borderBottomWidth: pressed ? 1.5 : 3,
+        marginTop: pressed ? 1.5 : 0,
+        ...theme.shadow.sm,
+      })}>
+      <Text variant="bodyStrong">{label}</Text>
     </Pressable>
   );
 };
@@ -93,15 +98,28 @@ export const WordOrderExercise = ({prompt, payload, onSubmit}: WordOrderExercise
         ))}
       </View>
 
+      {checked && (
+        <AnswerFeedback
+          isCorrect={correct}
+          correctAnswer={payload.correctOrder.map(i => payload.tokens[i]).join(' ')}
+        />
+      )}
+
       <View style={{marginTop: 'auto'}}>
         {checked ? (
           <Button
             label="Continue"
-            variant={correct ? 'primary' : 'danger'}
+            size="lg"
+            variant={correct ? 'success' : 'danger'}
             onPress={() => onSubmit(correct, answer)}
           />
         ) : (
-          <Button label="Check" disabled={picked.length === 0} onPress={() => setChecked(true)} />
+          <Button
+            label="Check"
+            size="lg"
+            disabled={picked.length === 0}
+            onPress={() => setChecked(true)}
+          />
         )}
       </View>
     </View>

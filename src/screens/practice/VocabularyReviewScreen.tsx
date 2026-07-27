@@ -1,10 +1,11 @@
 import {useState} from 'react';
 import {View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {useMutation} from '@tanstack/react-query';
 import {Button, Card, EmptyState, ErrorView, LoadingView, ProgressBar, Screen, Text} from '@/components';
 import {vocabularyApi} from '@/api';
-import {useAuth, useTheme} from '@/providers';
+import {useDueVocabulary} from '@/hooks';
+import {useTheme} from '@/providers';
 import {scheduleNextReview} from '@/utils';
 
 const QUALITY_BUTTONS = [
@@ -17,17 +18,11 @@ const QUALITY_BUTTONS = [
 export const VocabularyReviewScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation();
-  const {user} = useAuth();
 
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
 
-  const dueQuery = useQuery({
-    queryKey: ['vocab-due', user?.id],
-    queryFn: () => vocabularyApi.due(user!.id),
-    enabled: !!user?.id,
-  });
-
+  const dueQuery = useDueVocabulary();
   const saveReview = useMutation({mutationFn: vocabularyApi.saveReview});
 
   if (dueQuery.isLoading) {

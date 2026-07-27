@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push makes an in-flight run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, types, tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # react-native 0.86 requires ^22.13.0; anything lower warns EBADENGINE.
+          node-version: '22.13'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # react-native-dotenv inlines these at transform time, so the build needs a
+      # .env to exist even though CI never reaches a real backend.
+      - name: Provide placeholder env
+        run: cp .env.example .env
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test -- --ci
+
+  migrations:
+    name: Migrations apply cleanly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Catches a migration that only works against an already-migrated database -
+      # the whole set has to build a schema from nothing, every time.
+      - name: Start Supabase and apply migrations
+        run: supabase start
+
+      - name: Verify RLS is enabled on every public table
+        run: |
+          supabase db execute --stdin <<'SQL'
+          do $$
+          declare unprotected text;
+          begin
+            select string_agg(tablename, ', ') into unprotected
+            from pg_tables
+            where schemaname = 'public' and not rowsecurity;
+
+            if unprotected is not null then
+              raise exception 'Tables without RLS: %', unprotected;
+            end if;
+          end
+          $$;
+          SQL
+
+      # Enabling RLS and writing policies is only half of access control: without a
+      # table-level GRANT every query fails with "42501 permission denied", which
+      # RLS alone never produces. That exact gap shipped once already.
+      - name: Verify authenticated can actually read every table
+        run: |
+          supabase db execute --stdin <<'SQL'
+          do $$
+          declare ungranted text;
+          begin
+            select string_agg(t.tablename, ', ') into ungranted
+            from pg_tables t
+            where t.schemaname = 'public'
+              and not exists (
+                select 1
+                from information_schema.role_table_grants g
+                where g.table_schema = 'public'
+                  and g.table_name = t.tablename
+                  and g.grantee = 'authenticated'
+                  and g.privilege_type = 'SELECT'
+              );
+
+            if ungranted is not null then
+              raise exception 'Tables with RLS but no SELECT grant: %', ungranted;
+            end if;
+          end
+          $$;
+          SQL

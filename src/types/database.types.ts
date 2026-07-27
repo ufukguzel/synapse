@@ -27,10 +27,19 @@ export type Profile = {
   display_name: string | null;
   avatar_url: string | null;
   native_language: string;
+  /** ISO 639-1 code of the language being studied. */
+  learning_language: string;
+  /** ISO 639-1 code for interface copy. */
+  ui_language: string;
   target_level: CefrLevel;
   current_level: CefrLevel;
   daily_goal_minutes: number;
   timezone: string;
+  /** Local 'HH:MM:SS' for the streak reminder, or null when off. */
+  reminder_time: string | null;
+  notifications_enabled: boolean;
+  sound_enabled: boolean;
+  haptics_enabled: boolean;
   onboarding_completed: boolean;
   created_at: string;
   updated_at: string;
@@ -139,6 +148,49 @@ export type DailyActivity = {
   lessons_completed: number;
 }
 
+/** One of the five trainable brain regions. */
+export type RegionCode = 'listening' | 'speaking' | 'reading' | 'writing' | 'memory';
+
+export type SkillRegion = {
+  code: RegionCode;
+  title: string;
+  description: string;
+  /** Hex colour used for this region on the brain map. */
+  accent: string;
+  order_index: number;
+};
+
+export type UserRegionStrength = {
+  user_id: string;
+  region_code: RegionCode;
+  /** 0..100 */
+  strength: number;
+  updated_at: string;
+};
+
+export type LearningGoal = {
+  code: string;
+  title: string;
+  description: string;
+  order_index: number;
+};
+
+export type TaskStatus = 'pending' | 'completed' | 'skipped';
+
+export type DailyTask = {
+  id: string;
+  user_id: string;
+  task_date: string;
+  region_code: RegionCode;
+  title: string;
+  lesson_id: string | null;
+  estimated_minutes: number;
+  status: TaskStatus;
+  order_index: number;
+  completed_at: string | null;
+  created_at: string;
+};
+
 type TableDef<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
   Insert: Insert;
@@ -159,6 +211,10 @@ export type Database = {
       user_vocabulary: TableDef<UserVocabulary>;
       user_streaks: TableDef<UserStreak>;
       daily_activity: TableDef<DailyActivity>;
+      skill_regions: TableDef<SkillRegion>;
+      user_region_strength: TableDef<UserRegionStrength>;
+      learning_goals: TableDef<LearningGoal>;
+      daily_tasks: TableDef<DailyTask>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -170,12 +226,17 @@ export type Database = {
         Args: {p_vocabulary_id: string};
         Returns: UserVocabulary;
       };
+      strengthen_region: {
+        Args: {p_region_code: string; p_amount?: number};
+        Returns: UserRegionStrength;
+      };
     };
     Enums: {
       cefr_level: CefrLevel;
       lesson_kind: LessonKind;
       exercise_kind: ExerciseKind;
       progress_status: ProgressStatus;
+      task_status: TaskStatus;
     };
     CompositeTypes: Record<string, never>;
   };

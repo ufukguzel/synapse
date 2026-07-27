@@ -7,22 +7,44 @@ export interface EmptyStateProps {
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+  /** Optional glyph above the title. Omit for the plain, calm variant. */
+  icon?: string;
 }
 
-export const EmptyState = ({title, description, actionLabel, onAction}: EmptyStateProps) => {
+export const EmptyState = ({
+  title,
+  description,
+  actionLabel,
+  onAction,
+  icon,
+}: EmptyStateProps) => {
   const theme = useTheme();
   return (
-    <View style={[styles.container, {gap: theme.spacing.sm, padding: theme.spacing.xl}]}>
-      <Text variant="h3" center>
+    <View style={[styles.container, {gap: theme.spacing.md, padding: theme.spacing.xl}]}>
+      {!!icon && (
+        <View
+          style={[
+            styles.iconTile,
+            {backgroundColor: theme.colors.primarySoft, borderRadius: theme.radius.xxl},
+          ]}>
+          <Text variant="display">{icon}</Text>
+        </View>
+      )}
+      <Text variant="h2" center>
         {title}
       </Text>
       {!!description && (
-        <Text variant="body" center color={theme.colors.textSecondary}>
+        <Text variant="bodyLg" center color={theme.colors.textSecondary}>
           {description}
         </Text>
       )}
       {!!actionLabel && (
-        <Button label={actionLabel} onPress={onAction} fullWidth={false} style={{marginTop: theme.spacing.md}} />
+        <Button
+          label={actionLabel}
+          onPress={onAction}
+          fullWidth={false}
+          style={{marginTop: theme.spacing.sm}}
+        />
       )}
     </View>
   );
@@ -30,4 +52,5 @@ export const EmptyState = ({title, description, actionLabel, onAction}: EmptySta
 
 const styles = StyleSheet.create({
   container: {flex: 1, alignItems: 'center', justifyContent: 'center'},
+  iconTile: {width: 88, height: 88, alignItems: 'center', justifyContent: 'center'},
 });

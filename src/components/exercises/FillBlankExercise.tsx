@@ -4,6 +4,7 @@ import {Button, Input, Text} from '@/components/ui';
 import {useTheme} from '@/providers';
 import {isAnswerCorrect} from '@/utils';
 import type {FillBlankPayload} from '@/types';
+import {AnswerFeedback} from './AnswerFeedback';
 
 export interface FillBlankExerciseProps {
   prompt: string;
@@ -31,19 +32,25 @@ export const FillBlankExercise = ({prompt, payload, onSubmit}: FillBlankExercise
         editable={!checked}
         autoCapitalize="none"
         placeholder="Your answer"
-        error={checked && !correct ? `Correct: ${payload.answers[0]}` : null}
-        hint={checked && correct ? 'Correct!' : undefined}
       />
+
+      {checked && <AnswerFeedback isCorrect={correct} correctAnswer={payload.answers[0]} />}
 
       <View style={{marginTop: 'auto'}}>
         {checked ? (
           <Button
             label="Continue"
-            variant={correct ? 'primary' : 'danger'}
+            size="lg"
+            variant={correct ? 'success' : 'danger'}
             onPress={() => onSubmit(correct, value)}
           />
         ) : (
-          <Button label="Check" disabled={!value.trim()} onPress={() => setChecked(true)} />
+          <Button
+            label="Check"
+            size="lg"
+            disabled={!value.trim()}
+            onPress={() => setChecked(true)}
+          />
         )}
       </View>
     </View>

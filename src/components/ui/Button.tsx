@@ -1,8 +1,10 @@
-import {ActivityIndicator, Pressable, StyleSheet, ViewStyle} from 'react-native';
+import {ActivityIndicator, Pressable, StyleSheet, View, ViewStyle} from 'react-native';
 import {useTheme} from '@/providers';
+import type {GradientName} from '@/theme';
+import {GradientSurface} from './GradientSurface';
 import {Text} from './Text';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
 type Size = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps {
@@ -17,7 +19,21 @@ export interface ButtonProps {
   testID?: string;
 }
 
-const HEIGHTS: Record<Size, number> = {sm: 36, md: 48, lg: 56};
+const HEIGHTS: Record<Size, number> = {sm: 40, md: 52, lg: 58};
+
+/**
+ * Thickness of the solid bottom edge that gives the button its physical look.
+ * Pressing removes the edge and pushes the face down by the same amount, so the
+ * button depresses into the page without the surrounding layout shifting.
+ */
+const DEPTH: Record<Size, number> = {sm: 2, md: 4, lg: 4};
+
+/** Variants painted with a gradient face over a darker edge. */
+const GRADIENT_VARIANTS: Partial<Record<Variant, GradientName>> = {
+  primary: 'brand',
+  danger: 'danger',
+  success: 'success',
+};
 
 export const Button = ({
   label,
@@ -32,19 +48,27 @@ export const Button = ({
 }: ButtonProps) => {
   const theme = useTheme();
   const isDisabled = disabled || loading;
+  const gradientName = GRADIENT_VARIANTS[variant];
+  const depth = variant === 'ghost' ? 0 : DEPTH[size];
 
-  const background: Record<Variant, string> = {
-    primary: theme.colors.primary,
-    secondary: theme.colors.surfaceAlt,
-    ghost: 'transparent',
-    danger: theme.colors.danger,
-  };
-  const labelColor: Record<Variant, string> = {
-    primary: theme.colors.onPrimary,
-    secondary: theme.colors.text,
-    ghost: theme.colors.primary,
-    danger: theme.colors.textInverse,
-  };
+  const labelColor =
+    variant === 'secondary'
+      ? theme.colors.text
+      : variant === 'ghost'
+      ? theme.colors.primary
+      : theme.colors.onPrimary;
+
+  const edgeColor = gradientName ? theme.gradients[gradientName].edge : theme.colors.borderStrong;
+
+  const face = loading ? (
+    <ActivityIndicator color={labelColor} />
+  ) : (
+    <Text variant="button" color={labelColor} numberOfLines={1}>
+      {label}
+    </Text>
+  );
+
+  const faceStyle = {height: HEIGHTS[size], borderRadius: theme.radius.lg};
 
   return (
     <Pressable
@@ -54,31 +78,46 @@ export const Button = ({
       disabled={isDisabled}
       onPress={onPress}
       style={({pressed}) => [
-        styles.base,
+        // The edge is painted by the wrapper, so only the face moves on press.
         {
-          height: HEIGHTS[size],
-          borderRadius: theme.radius.md,
-          backgroundColor: background[variant],
-          paddingHorizontal: theme.spacing.lg,
-          borderWidth: variant === 'ghost' ? 1 : 0,
-          borderColor: theme.colors.border,
-          opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1,
+          borderRadius: theme.radius.lg,
+          backgroundColor: depth > 0 ? edgeColor : 'transparent',
+          paddingBottom: pressed ? 0 : depth,
+          marginTop: pressed ? depth : 0,
+          opacity: isDisabled ? 0.45 : 1,
         },
         fullWidth && styles.fullWidth,
         style,
       ]}>
-      {loading ? (
-        <ActivityIndicator color={labelColor[variant]} />
+      {gradientName ? (
+        // GradientSurface, not a bare LinearGradient: as a laid-out flex child the
+        // gradient renders inset from its own frame, which let the darker edge
+        // colour show as a border on all four sides instead of just the bottom.
+        <GradientSurface gradient={gradientName} style={[styles.face, faceStyle]}>
+          {face}
+        </GradientSurface>
       ) : (
-        <Text variant="button" color={labelColor[variant]}>
-          {label}
-        </Text>
+        <View
+          style={[
+            styles.face,
+            faceStyle,
+            {
+              backgroundColor: variant === 'secondary' ? theme.colors.surfaceAlt : 'transparent',
+            },
+          ]}>
+          {face}
+        </View>
       )}
     </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
-  base: {alignItems: 'center', justifyContent: 'center', flexDirection: 'row'},
+  face: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+  },
   fullWidth: {alignSelf: 'stretch'},
 });

@@ -97,10 +97,10 @@ npx supabase gen types typescript --project-id <ref> --schema public > src/types
 
 ### Data model
 
-- **Content** — `courses → units → lessons → exercises`, plus a standalone `vocabulary_items` bank. Readable by any signed-in user, but only when `is_published`.
+- **Content** — `courses → units → lessons → exercises`, plus a standalone `vocabulary_items` bank and a `lesson_vocabulary` link table. Readable by any signed-in user, but only when `is_published`.
 - **Progress** — `user_lesson_progress`, `user_vocabulary` (SM-2 review state), `user_streaks`, `daily_activity`. Every row is locked to `auth.uid()` by RLS.
 - **Triggers** — a new `auth.users` row automatically gets a `profiles` and a `user_streaks` row.
-- **RPC** — `record_activity(minutes, xp, lessons)` writes today's activity and advances the streak atomically; `enroll_vocabulary(id)` adds a word to the review queue.
+- **RPC** — `complete_lesson(lesson, score, minutes)` marks a lesson done, awards its XP (server-side, from `xp_reward`, first completion only), advances the streak and enrols the lesson's vocabulary — atomically; `record_activity(minutes, xp, lessons)` backs vocabulary review; `enroll_vocabulary(id)` adds a single word to the queue. See [docs/SUPABASE.md](docs/SUPABASE.md).
 
 ### Exercise payloads
 
@@ -130,9 +130,10 @@ Working skeleton: auth flow, onboarding, course browsing, a playable lesson loop
 hearts/XP, all seven exercise types, SM-2 vocabulary review, streak tracking, profile
 and settings. Screens are functional but **not yet styled to the final designs**.
 
-Finishing a lesson or a review session calls the `record_activity` RPC, which writes
-today's minutes/XP/lesson count and advances the streak. Study time is measured
-per exercise — each one is timed from when it appears to when it is answered.
+Finishing a lesson calls the `complete_lesson` RPC (progress + server-side XP + streak +
+vocabulary enrolment, atomically); a review session calls `record_activity`. Both advance
+the streak and log today's minutes/XP/lesson count. Study time is measured per exercise —
+each one is timed from when it appears to when it is answered.
 
 Next up:
 - [ ] Apply the design files (colors, type, spacing, icons, illustrations)

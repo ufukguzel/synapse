@@ -75,3 +75,13 @@ values
   ('afternoon', '/ˌɑːf.təˈnuːn/', 'The time between noon and evening.', 'öğleden sonra',
    'See you in the afternoon.', 'A1', array['time'])
 on conflict (headword, level) do nothing;
+
+-- Wire the first lesson's words into the review queue on completion. The seed
+-- vocabulary has no fixed ids, so match on (headword, level) instead.
+insert into public.lesson_vocabulary (lesson_id, vocabulary_id, order_index)
+select 'bbbbbbb1-0000-0000-0000-000000000001', v.id,
+       row_number() over (order by v.headword)
+  from public.vocabulary_items v
+  where v.level = 'A1'
+    and v.headword in ('greeting', 'introduce', 'afternoon')
+on conflict do nothing;

@@ -1,5 +1,11 @@
 import {supabase} from '@/services/supabase';
-import type {AnyExercise, Exercise, Lesson, UserLessonProgress} from '@/types';
+import type {
+  AnyExercise,
+  CompleteLessonResult,
+  Exercise,
+  Lesson,
+  UserLessonProgress,
+} from '@/types';
 
 const toTypedExercise = (row: Exercise): AnyExercise =>
   ({
@@ -42,22 +48,22 @@ export const lessonsApi = {
     return data ?? [];
   },
 
-  async complete(params: {userId: string; lessonId: string; score: number}) {
-    const {data, error} = await supabase
-      .from('user_lesson_progress')
-      .upsert(
-        {
-          user_id: params.userId,
-          lesson_id: params.lessonId,
-          status: 'completed',
-          score: params.score,
-          completed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {onConflict: 'user_id,lesson_id'},
-      )
-      .select('*')
-      .single();
+  /**
+   * Marks a lesson complete, awards its XP, advances the streak and enrols the
+   * lesson's vocabulary — all in one atomic RPC. XP is derived server-side from
+   * `lessons.xp_reward`, and is only granted the first time the lesson is
+   * finished (repeats keep the streak alive but cannot be farmed).
+   */
+  async complete(params: {
+    lessonId: string;
+    score: number;
+    minutes: number;
+  }): Promise<CompleteLessonResult> {
+    const {data, error} = await supabase.rpc('complete_lesson', {
+      p_lesson_id: params.lessonId,
+      p_score: params.score,
+      p_minutes: params.minutes,
+    });
     if (error) {
       throw error;
     }

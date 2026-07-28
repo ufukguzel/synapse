@@ -14,6 +14,7 @@ Files run in filename order:
 | `20260725090000_init_schema.sql` | enums, tables, indexes |
 | `20260725090100_functions_triggers.sql` | `handle_new_user`, `record_activity`, `enroll_vocabulary`, `updated_at` triggers |
 | `20260725090200_rls_policies.sql` | RLS enable + policies + function grants |
+| `20260728120000_lesson_completion.sql` | `lesson_vocabulary` table + RLS, `complete_lesson` RPC + grant |
 
 ## Tables
 
@@ -26,6 +27,7 @@ Files run in filename order:
 | `lessons` | ordered lessons inside a unit; carries `xp_reward`, `estimated_minutes` |
 | `exercises` | `kind` + `payload jsonb`; see `src/types/exercise.ts` |
 | `vocabulary_items` | shared word bank, unique on `(headword, level)` |
+| `lesson_vocabulary` | links a lesson to the words it teaches; `complete_lesson` enrols them |
 
 Writes are intentionally impossible from the client — use the service role (admin tooling,
 seed scripts, or the Supabase dashboard).
@@ -43,15 +45,40 @@ seed scripts, or the Supabase dashboard).
 ## RPC
 
 ```ts
-// Advance the streak and log today's study time
+// Finish a lesson: mark it complete, award its XP, advance the streak and
+// enrol its vocabulary — one atomic call. p_score is the 0-100 accuracy.
+const {data} = await supabase.rpc('complete_lesson', {
+  p_lesson_id: id,
+  p_score: 90,
+  p_minutes: 6,
+});
+// data → { is_first_completion, xp_awarded, enrolled_count, streak }
+
+// Advance the streak and log today's study time (used by vocabulary review)
 await supabase.rpc('record_activity', {p_minutes: 6, p_xp: 40, p_lessons: 1});
 
-// Add a word to the review queue
+// Add a single word to the review queue
 await supabase.rpc('enroll_vocabulary', {p_vocabulary_id: id});
 ```
 
-Both are `security definer` and read `auth.uid()` internally, so the caller cannot write
-to another user's rows. Both are granted to `authenticated` only.
+All three are `security definer` and read `auth.uid()` internally, so the caller cannot
+write to another user's rows. All are granted to `authenticated` only.
+
+### Why `complete_lesson` over a plain upsert
+
+Finishing a lesson used to be two client calls — an `upsert` into `user_lesson_progress`
+plus `record_activity` — with the XP amount supplied by the client. `complete_lesson`
+replaces both:
+
+- **Atomic.** Progress, streak and vocabulary enrolment succeed or fail together.
+- **Server-authoritative XP.** The award comes from `lessons.xp_reward`, so a client
+  cannot inflate it. XP and the daily lesson tally are granted only on the **first**
+  completion (`is_first_completion`); repeats still log minutes to keep the streak
+  alive, but award nothing — a lesson can't be farmed.
+- **Best score kept, attempts counted.** Re-completing keeps the higher score and
+  increments `attempts`; the original `completed_at` is preserved.
+- **Auto-enrolment.** Words linked via `lesson_vocabulary` land in the SRS queue
+  (idempotent — already-enrolled words keep their review state).
 
 ## Streak rules
 

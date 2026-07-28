@@ -139,6 +139,20 @@ export type DailyActivity = {
   lessons_completed: number;
 }
 
+export type LessonVocabulary = {
+  lesson_id: string;
+  vocabulary_id: string;
+  order_index: number;
+}
+
+/** Return shape of the `complete_lesson` RPC. */
+export type CompleteLessonResult = {
+  is_first_completion: boolean;
+  xp_awarded: number;
+  enrolled_count: number;
+  streak: UserStreak;
+}
+
 type TableDef<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
   Insert: Insert;
@@ -159,6 +173,7 @@ export type Database = {
       user_vocabulary: TableDef<UserVocabulary>;
       user_streaks: TableDef<UserStreak>;
       daily_activity: TableDef<DailyActivity>;
+      lesson_vocabulary: TableDef<LessonVocabulary>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -169,6 +184,10 @@ export type Database = {
       enroll_vocabulary: {
         Args: {p_vocabulary_id: string};
         Returns: UserVocabulary;
+      };
+      complete_lesson: {
+        Args: {p_lesson_id: string; p_score?: number; p_minutes?: number};
+        Returns: CompleteLessonResult;
       };
     };
     Enums: {

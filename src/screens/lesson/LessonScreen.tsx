@@ -2,7 +2,7 @@ import {useEffect, useRef} from 'react';
 import {View} from 'react-native';
 import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import {
   EmptyState,
   ErrorView,
@@ -13,7 +13,7 @@ import {
   Text,
 } from '@/components';
 import {lessonsApi} from '@/api';
-import {useLessonSession, useRecordActivity} from '@/hooks';
+import {useCompleteLesson, useLessonSession} from '@/hooks';
 import {useAuth, useTheme} from '@/providers';
 import type {RootStackParamList} from '@/navigation/types';
 
@@ -33,14 +33,10 @@ export const LessonScreen = () => {
 
   const session = useLessonSession(exercisesQuery.data ?? []);
 
-  const completeLesson = useMutation({
-    mutationFn: (score: number) =>
-      lessonsApi.complete({userId: user!.id, lessonId: params.lessonId, score}),
-  });
-  const recordActivity = useRecordActivity();
+  const completeLesson = useCompleteLesson();
 
-  // The finish effect writes progress and advances the streak, so it must run
-  // exactly once even if the effect is re-invoked (StrictMode, remounts).
+  // The finish effect completes the lesson server-side, so it must run exactly
+  // once even if the effect is re-invoked (StrictMode, remounts).
   const finalizedRef = useRef(false);
 
   useEffect(() => {
@@ -49,22 +45,40 @@ export const LessonScreen = () => {
     }
     finalizedRef.current = true;
 
-    const score = Math.round(session.accuracy * 100);
-    if (user?.id) {
-      completeLesson.mutate(score);
-      recordActivity.mutate({
-        minutes: session.minutesStudied,
-        xp: session.xp,
-        lessons: 1,
+    const goToResult = (xp: number) =>
+      navigation.replace('LessonResult', {
+        lessonId: params.lessonId,
+        xp,
+        accuracy: session.accuracy,
       });
+
+    if (!user?.id) {
+      // No session (offline / placeholder creds): skip the server round-trip
+      // and show the locally-tallied XP.
+      goToResult(session.xp);
+      return;
     }
-    navigation.replace('LessonResult', {
-      lessonId: params.lessonId,
-      xp: session.xp,
-      accuracy: session.accuracy,
-    });
+
+    // Wait for the RPC so the result screen shows the XP the server actually
+    // awarded (a lesson's fixed reward, zero on a repeat), not a local guess.
+    completeLesson.mutate(
+      {
+        lessonId: params.lessonId,
+        score: Math.round(session.accuracy * 100),
+        minutes: session.minutesStudied,
+      },
+      {
+        onSuccess: result => goToResult(result.xp_awarded),
+        onError: () => goToResult(session.xp),
+      },
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.isFinished]);
+
+  // Finished, waiting on the completion RPC before the result screen.
+  if (session.isFinished && completeLesson.isPending) {
+    return <LoadingView message="Saving your progress…" />;
+  }
 
   if (exercisesQuery.isLoading) {
     return <LoadingView />;

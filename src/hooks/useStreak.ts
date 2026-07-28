@@ -5,6 +5,17 @@ import {profileQueryKey} from './useProfile';
 
 export const streakQueryKey = (userId: string) => ['streak', userId] as const;
 export const dailyActivityQueryKey = (userId: string) => ['daily-activity', userId] as const;
+export const userStatsQueryKey = (userId: string) => ['user-stats', userId] as const;
+
+/** Aggregate profile stats (streak, XP, weekly minutes, counts) in one call. */
+export const useUserStats = () => {
+  const {user} = useAuth();
+  return useQuery({
+    queryKey: userStatsQueryKey(user?.id ?? 'anonymous'),
+    queryFn: () => streaksApi.stats(),
+    enabled: !!user?.id,
+  });
+};
 
 export const useStreak = () => {
   const {user} = useAuth();
@@ -41,6 +52,7 @@ export const useRecordActivity = () => {
       }
       queryClient.invalidateQueries({queryKey: streakQueryKey(userId)});
       queryClient.invalidateQueries({queryKey: dailyActivityQueryKey(userId)});
+      queryClient.invalidateQueries({queryKey: userStatsQueryKey(userId)});
       queryClient.invalidateQueries({queryKey: profileQueryKey(userId)});
     },
   });

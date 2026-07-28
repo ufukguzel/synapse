@@ -1,7 +1,16 @@
 import {supabase} from '@/services/supabase';
-import type {DailyActivity, UserStreak} from '@/types';
+import type {DailyActivity, UserStats, UserStreak} from '@/types';
 
 export const streaksApi = {
+  /** Aggregate profile stats in one round-trip (see the `user_stats` RPC). */
+  async stats(): Promise<UserStats> {
+    const {data, error} = await supabase.rpc('user_stats');
+    if (error) {
+      throw error;
+    }
+    return data;
+  },
+
   async get(userId: string): Promise<UserStreak | null> {
     const {data, error} = await supabase
       .from('user_streaks')

@@ -163,6 +163,18 @@ export type LessonState = {
   is_available: boolean;
 }
 
+/** Return shape of the `user_stats` RPC — the profile screen's numbers. */
+export type UserStats = {
+  current_streak: number;
+  longest_streak: number;
+  total_xp: number;
+  minutes_today: number;
+  minutes_week: number;
+  lessons_completed: number;
+  words_learned: number;
+  words_due: number;
+}
+
 type TableDef<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
   Insert: Insert;
@@ -202,6 +214,10 @@ export type Database = {
       lesson_states: {
         Args: {p_course_id: string};
         Returns: LessonState[];
+      };
+      user_stats: {
+        Args: Record<string, never>;
+        Returns: UserStats;
       };
     };
     Enums: {

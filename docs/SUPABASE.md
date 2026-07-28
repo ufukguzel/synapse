@@ -16,6 +16,7 @@ Files run in filename order:
 | `20260725090200_rls_policies.sql` | RLS enable + policies + function grants |
 | `20260728120000_lesson_completion.sql` | `lesson_vocabulary` table + RLS, `complete_lesson` RPC + grant |
 | `20260728130000_lesson_states.sql` | `lesson_states` RPC (progression gating) + grant |
+| `20260728140000_user_stats.sql` | `user_stats` RPC (profile aggregates) + grant |
 
 ## Tables
 
@@ -64,10 +65,19 @@ await supabase.rpc('enroll_vocabulary', {p_vocabulary_id: id});
 // Per-lesson gating for a course: locked / available / in_progress / completed
 const {data} = await supabase.rpc('lesson_states', {p_course_id: id});
 // data → [{ lesson_id, unit_id, seq, status, score, is_available }, …]
+
+// Everything the profile screen shows, in one call
+const {data} = await supabase.rpc('user_stats');
+// data → { current_streak, longest_streak, total_xp, minutes_today,
+//          minutes_week, lessons_completed, words_learned, words_due }
 ```
 
-All four are `security definer` and read `auth.uid()` internally, so the caller cannot
+All five are `security definer` and read `auth.uid()` internally, so the caller cannot
 read or write another user's rows. All are granted to `authenticated` only.
+
+`user_stats` is `stable` and read-only — it folds the streak row, the daily-activity
+roll-ups (today and the rolling 7 days) and the progress / vocabulary counts into one
+object, so the profile screen no longer fetches raw rows to sum on the client.
 
 ### Progression (`lesson_states`)
 

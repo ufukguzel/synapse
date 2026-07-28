@@ -2,7 +2,7 @@ import {View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {Badge, Button, Card, Screen, Text} from '@/components';
-import {useRecentActivity, useStreak} from '@/hooks';
+import {useUserStats} from '@/hooks';
 import {useAuth, useTheme} from '@/providers';
 import {formatMinutes, formatXp} from '@/utils';
 import type {RootStackParamList} from '@/navigation/types';
@@ -13,10 +13,8 @@ export const ProfileScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation<Nav>();
   const {profile, user} = useAuth();
-  const streak = useStreak();
-  const activity = useRecentActivity(7);
-
-  const weekMinutes = (activity.data ?? []).reduce((sum, day) => sum + day.minutes_studied, 0);
+  const stats = useUserStats();
+  const s = stats.data;
 
   return (
     <Screen scroll>
@@ -25,10 +23,19 @@ export const ProfileScreen = () => {
         {!!profile?.current_level && <Badge label={profile.current_level} tone="primary" />}
 
         <Card style={{gap: theme.spacing.md}}>
-          <Row label="Current streak" value={`${streak.data?.current_streak ?? 0} days`} />
-          <Row label="Longest streak" value={`${streak.data?.longest_streak ?? 0} days`} />
-          <Row label="Total XP" value={formatXp(streak.data?.total_xp ?? 0)} />
-          <Row label="This week" value={formatMinutes(weekMinutes)} />
+          <Row label="Current streak" value={`${s?.current_streak ?? 0} days`} />
+          <Row label="Longest streak" value={`${s?.longest_streak ?? 0} days`} />
+          <Row label="Total XP" value={formatXp(s?.total_xp ?? 0)} />
+          <Row label="This week" value={formatMinutes(s?.minutes_week ?? 0)} />
+          <Row label="Lessons completed" value={`${s?.lessons_completed ?? 0}`} />
+          <Row
+            label="Words learned"
+            value={
+              s && s.words_due > 0
+                ? `${s.words_learned} · ${s.words_due} due`
+                : `${s?.words_learned ?? 0}`
+            }
+          />
         </Card>
 
         <Button label="Settings" variant="secondary" onPress={() => navigation.navigate('Settings')} />

@@ -15,6 +15,7 @@ Files run in filename order:
 | `20260725090100_functions_triggers.sql` | `handle_new_user`, `record_activity`, `enroll_vocabulary`, `updated_at` triggers |
 | `20260725090200_rls_policies.sql` | RLS enable + policies + function grants |
 | `20260728120000_lesson_completion.sql` | `lesson_vocabulary` table + RLS, `complete_lesson` RPC + grant |
+| `20260728130000_lesson_states.sql` | `lesson_states` RPC (progression gating) + grant |
 
 ## Tables
 
@@ -59,10 +60,28 @@ await supabase.rpc('record_activity', {p_minutes: 6, p_xp: 40, p_lessons: 1});
 
 // Add a single word to the review queue
 await supabase.rpc('enroll_vocabulary', {p_vocabulary_id: id});
+
+// Per-lesson gating for a course: locked / available / in_progress / completed
+const {data} = await supabase.rpc('lesson_states', {p_course_id: id});
+// data → [{ lesson_id, unit_id, seq, status, score, is_available }, …]
 ```
 
-All three are `security definer` and read `auth.uid()` internally, so the caller cannot
-write to another user's rows. All are granted to `authenticated` only.
+All four are `security definer` and read `auth.uid()` internally, so the caller cannot
+read or write another user's rows. All are granted to `authenticated` only.
+
+### Progression (`lesson_states`)
+
+Lessons form a linear path, sequenced by `units.order_index` then `lessons.order_index`
+across the whole course. `lesson_states` returns each lesson's state for the caller:
+
+- **`locked`** — the lesson immediately before it is not yet completed.
+- **`available`** — unlocked, not started (the first lesson is always available).
+- **`in_progress`** — unlocked and has a progress row that is not `completed`.
+- **`completed`** — finished at least once (`score` carries the best result).
+
+Because it is `security definer`, it explicitly filters `user_lesson_progress` on
+`auth.uid()` in place of RLS. It is `stable` (read-only) and safe to call on every
+course-detail render.
 
 ### Why `complete_lesson` over a plain upsert
 

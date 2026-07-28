@@ -100,7 +100,7 @@ npx supabase gen types typescript --project-id <ref> --schema public > src/types
 - **Content** — `courses → units → lessons → exercises`, plus a standalone `vocabulary_items` bank and a `lesson_vocabulary` link table. Readable by any signed-in user, but only when `is_published`.
 - **Progress** — `user_lesson_progress`, `user_vocabulary` (SM-2 review state), `user_streaks`, `daily_activity`. Every row is locked to `auth.uid()` by RLS.
 - **Triggers** — a new `auth.users` row automatically gets a `profiles` and a `user_streaks` row.
-- **RPC** — `complete_lesson(lesson, score, minutes)` marks a lesson done, awards its XP (server-side, from `xp_reward`, first completion only), advances the streak and enrols the lesson's vocabulary — atomically; `record_activity(minutes, xp, lessons)` backs vocabulary review; `enroll_vocabulary(id)` adds a single word to the queue. See [docs/SUPABASE.md](docs/SUPABASE.md).
+- **RPC** — `complete_lesson(lesson, score, minutes)` marks a lesson done, awards its XP (server-side, from `xp_reward`, first completion only), advances the streak and enrols the lesson's vocabulary — atomically; `lesson_states(course)` returns each lesson's gating state (locked / available / in_progress / completed); `record_activity(minutes, xp, lessons)` backs vocabulary review; `enroll_vocabulary(id)` adds a single word to the queue. See [docs/SUPABASE.md](docs/SUPABASE.md).
 
 ### Exercise payloads
 
@@ -126,9 +126,10 @@ propagates everywhere — no hard-coded hex values in screens.
 
 ## Status
 
-Working skeleton: auth flow, onboarding, course browsing, a playable lesson loop with
-hearts/XP, all seven exercise types, SM-2 vocabulary review, streak tracking, profile
-and settings. Screens are functional but **not yet styled to the final designs**.
+Working skeleton: auth flow, onboarding, course browsing with a gated lesson path
+(locked until the previous lesson is done), a playable lesson loop with hearts/XP, all
+seven exercise types, SM-2 vocabulary review, streak tracking, profile and settings.
+Screens are functional but **not yet styled to the final designs**.
 
 Finishing a lesson calls the `complete_lesson` RPC (progress + server-side XP + streak +
 vocabulary enrolment, atomically); a review session calls `record_activity`. Both advance

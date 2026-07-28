@@ -24,6 +24,8 @@ export const useCompleteLesson = () => {
       queryClient.invalidateQueries({queryKey: dailyActivityQueryKey(userId)});
       queryClient.invalidateQueries({queryKey: profileQueryKey(userId)});
       queryClient.invalidateQueries({queryKey: ['vocab-due', userId]});
+      // Completing a lesson can unlock the next one, in any course.
+      queryClient.invalidateQueries({queryKey: ['lesson-states']});
     },
   });
 };

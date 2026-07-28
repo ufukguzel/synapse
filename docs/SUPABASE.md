@@ -18,6 +18,22 @@ Files run in filename order:
 | `20260728130000_lesson_states.sql` | `lesson_states` RPC (progression gating) + grant |
 | `20260728140000_user_stats.sql` | `user_stats` RPC (profile aggregates) + grant |
 
+## Testing migrations
+
+```bash
+supabase/test/run.sh        # or: sudo -u postgres supabase/test/run.sh
+```
+
+Spins up a throwaway local Postgres, applies a small Supabase shim
+(`supabase/test/shim.sql` — an `auth` schema, an `auth.users` stand-in and an
+`auth.uid()` backed by a session GUC), then every migration in order, then the
+seed, then `supabase/test/functional_test.sql`. The functional tests exercise
+the RPCs end to end — the `handle_new_user` trigger, `complete_lesson`
+(first vs. repeat, server-side XP, vocabulary enrolment), `lesson_states`
+gating, `user_stats` aggregates, and the auth / not-found guards — and abort
+with a non-zero exit on any failed assertion, so it works as a CI gate. Needs
+the Postgres server binaries (`initdb`, `pg_ctl`, `psql`); must not run as root.
+
 ## Tables
 
 ### Content (read-only to clients)

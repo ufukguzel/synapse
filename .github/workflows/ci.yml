@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  js:
+    name: typecheck · lint · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+
+  db:
+    name: migrations · functional tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The ubuntu runners ship PostgreSQL, but install it explicitly so the
+      # server binaries (initdb/pg_ctl) are guaranteed present.
+      - name: Ensure PostgreSQL is installed
+        run: sudo apt-get update && sudo apt-get install -y postgresql
+      - name: Apply migrations + run functional tests
+        run: |
+          PG_BIN="$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1)"
+          echo "using $PG_BIN"
+          PG_BIN="$PG_BIN" supabase/test/run.sh

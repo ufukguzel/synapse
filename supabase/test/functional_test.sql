@@ -27,6 +27,12 @@ begin
   if not exists (select 1 from public.user_streaks where user_id = v_user) then
     raise exception 'FAIL: streak row not created by trigger';
   end if;
+  -- No language/timezone in this user's metadata → column defaults.
+  select native_language, timezone into v_row from public.profiles where id = v_user;
+  if v_row.native_language <> 'tr' or v_row.timezone <> 'Europe/Istanbul' then
+    raise exception 'FAIL: profile defaults wrong: lang=% tz=%',
+      v_row.native_language, v_row.timezone;
+  end if;
 
   perform set_config('app.uid', v_user::text, false);
 
@@ -146,6 +152,28 @@ begin
   end if;
 
   raise notice 'ALL HAPPY-PATH ASSERTIONS PASSED';
+end $$;
+
+-- 7b. New user WITH language/timezone metadata → those values are used
+do $$
+declare
+  v_user uuid;
+  v_row  record;
+begin
+  insert into auth.users (email, raw_user_meta_data)
+  values (
+    'polyglot@example.com',
+    '{"display_name":"Kai","native_language":"en","timezone":"Europe/London"}'::jsonb
+  )
+  returning id into v_user;
+
+  select native_language, timezone into v_row from public.profiles where id = v_user;
+  if v_row.native_language <> 'en' or v_row.timezone <> 'Europe/London' then
+    raise exception 'FAIL: metadata not applied to profile: lang=% tz=%',
+      v_row.native_language, v_row.timezone;
+  end if;
+
+  raise notice 'NEW-USER METADATA ASSERTIONS PASSED';
 end $$;
 
 -- 8. Guards: unpublished / missing lesson, and unauthenticated caller

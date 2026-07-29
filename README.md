@@ -126,19 +126,17 @@ propagates everywhere — no hard-coded hex values in screens.
 
 ## Status
 
-Working skeleton: auth flow, onboarding, course browsing with a gated lesson path
-(locked until the previous lesson is done), a playable lesson loop with hearts/XP, all
-seven exercise types, SM-2 vocabulary review, streak tracking, profile and settings.
-Screens are functional but **not yet styled to the final designs**.
+Feature-complete for a first release: auth flow, onboarding, course browsing with a gated
+lesson path (locked until the previous lesson is done), a playable lesson loop with
+hearts/XP that ends on both success and running out of hearts, all seven exercise types,
+SM-2 vocabulary review with favorites, streak + daily-goal tracking, an editable profile,
+and a top-level error boundary. Screens are functional but styled with **placeholder design
+tokens**, not the final designs.
 
 Finishing a lesson calls the `complete_lesson` RPC (progress + server-side XP + streak +
 vocabulary enrolment, atomically); a review session calls `record_activity`. Both advance
 the streak and log today's minutes/XP/lesson count. Study time is measured per exercise —
 each one is timed from when it appears to when it is answered.
 
-Next up:
-- [ ] Apply the design files (colors, type, spacing, icons, illustrations)
-- [ ] Register real audio / speech drivers (see [docs/MEDIA.md](docs/MEDIA.md))
-- [ ] Push notifications for the daily reminder
-- [ ] Offline lesson cache
-- [ ] End the lesson when hearts run out (`isFailed` is computed but not acted on)
+See [docs/RELEASE.md](docs/RELEASE.md) for the go-live checklist and what's deferred to
+post-launch (push notifications, offline cache, real audio/speech drivers, design assets).

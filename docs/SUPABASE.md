@@ -20,6 +20,7 @@ Files run in filename order:
 | `20260728150000_new_user_profile.sql` | `handle_new_user` reads language/timezone from metadata |
 | `20260728160000_user_stats_goal.sql` | `user_stats` gains `daily_goal_minutes` / `goal_met_today` |
 | `20260728170000_favorite_index.sql` | partial index for the favorites query |
+| `20260728180000_user_stats_favorites.sql` | `user_stats` gains `words_favorite` |
 
 ## Testing migrations
 
@@ -90,7 +91,7 @@ const {data} = await supabase.rpc('user_stats');
 // data → { current_streak, longest_streak, total_xp,
 //          minutes_today, minutes_week,
 //          daily_goal_minutes, goal_met_today,
-//          lessons_completed, words_learned, words_due }
+//          lessons_completed, words_learned, words_due, words_favorite }
 ```
 
 All five are `security definer` and read `auth.uid()` internally, so the caller cannot

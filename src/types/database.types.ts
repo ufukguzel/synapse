@@ -175,6 +175,7 @@ export type UserStats = {
   lessons_completed: number;
   words_learned: number;
   words_due: number;
+  words_favorite: number;
 }
 
 type TableDef<Row, Insert = Partial<Row>, Update = Partial<Row>> = {

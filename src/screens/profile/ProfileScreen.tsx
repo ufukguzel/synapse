@@ -36,7 +36,16 @@ export const ProfileScreen = () => {
                 : `${s?.words_learned ?? 0}`
             }
           />
+          <Row label="Favorites" value={`★ ${s?.words_favorite ?? 0}`} />
         </Card>
+
+        {!!s && s.words_favorite > 0 && (
+          <Button
+            label="View favorites"
+            variant="secondary"
+            onPress={() => navigation.navigate('Favorites')}
+          />
+        )}
 
         <Button label="Settings" variant="secondary" onPress={() => navigation.navigate('Settings')} />
       </View>

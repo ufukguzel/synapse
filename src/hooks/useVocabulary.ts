@@ -33,6 +33,8 @@ export const useToggleFavorite = () => {
       }
       queryClient.invalidateQueries({queryKey: favoritesQueryKey(userId)});
       queryClient.invalidateQueries({queryKey: dueReviewsQueryKey(userId)});
+      // The profile's favorite count comes from user_stats.
+      queryClient.invalidateQueries({queryKey: ['user-stats', userId]});
     },
   });
 };

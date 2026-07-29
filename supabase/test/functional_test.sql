@@ -174,6 +174,11 @@ begin
   if v_cnt <> 1 then
     raise exception 'FAIL: expected 1 favorite, got %', v_cnt;
   end if;
+  -- ...and user_stats reflects it.
+  v_res := public.user_stats();
+  if (v_res->>'words_favorite')::int <> 1 then
+    raise exception 'FAIL: user_stats words_favorite should be 1: %', v_res;
+  end if;
 
   raise notice 'ALL HAPPY-PATH ASSERTIONS PASSED';
 end $$;

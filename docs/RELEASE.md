@@ -12,6 +12,8 @@ What's production-ready, and the steps + honest gaps before shipping to stores.
   `supabase/test/run.sh`. XP is server-authoritative; the seed is idempotent.
 - **Crash safety** — a top-level `ErrorBoundary` catches render errors and shows a
   recovery screen instead of a white screen.
+- **Offline-friendly** — the query cache is persisted to AsyncStorage, so already-seen
+  content hydrates instantly and reads work without a connection.
 - **Graceful degradation** — audio/speech exercises fall back to typed/self-assessed
   modes when no native driver is registered, so no lesson can dead-end.
 
@@ -51,7 +53,9 @@ milestones and each needs a real device/native module (not verifiable in CI):
   `reminder_hour`), the onboarding + settings UI, and the scheduler seam
   (`src/services/notifications`) are built; only a native driver needs registering. See
   [NOTIFICATIONS.md](NOTIFICATIONS.md).
-- **Offline lesson cache** — currently every screen needs the network.
+- **Offline media** — text content now hydrates from a persisted query cache (courses,
+  lessons, profile survive a cold start and read offline); audio clips and images are not
+  cached yet.
 - **Real audio clips + registered drivers** — populate `exercises.audio_url` and register
   an audio player / speech recognizer (see [MEDIA.md](MEDIA.md)).
 - **Crash reporting** — hook Sentry/Bugsnag into `ErrorBoundary.componentDidCatch` and the

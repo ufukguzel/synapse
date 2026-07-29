@@ -85,6 +85,8 @@ export const HomeScreen = () => {
         }
         renderItem={({item}) => (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${item.title} course`}
             onPress={() => navigation.navigate('CourseDetail', {courseId: item.id, title: item.title})}>
             <Card style={{gap: theme.spacing.sm}}>
               <Badge label={item.level} tone="primary" />

@@ -22,6 +22,9 @@ const TokenChip = ({label, disabled, onPress}: TokenChipProps) => {
     <Pressable
       disabled={disabled}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{disabled}}
       style={{
         paddingHorizontal: theme.spacing.md,
         paddingVertical: theme.spacing.sm,

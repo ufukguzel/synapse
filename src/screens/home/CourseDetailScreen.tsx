@@ -66,6 +66,9 @@ export const CourseDetailScreen = () => {
           return (
             <Pressable
               disabled={locked}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.title}${locked ? ', locked' : ''}`}
+              accessibilityState={{disabled: locked}}
               onPress={() =>
                 navigation.navigate('Lesson', {lessonId: item.id, title: item.title})
               }>

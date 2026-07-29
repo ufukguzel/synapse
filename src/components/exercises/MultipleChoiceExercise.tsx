@@ -33,7 +33,13 @@ export const MultipleChoiceExercise = ({prompt, payload, onSubmit}: MultipleChoi
 
       <View style={{gap: theme.spacing.sm}}>
         {payload.options.map(option => (
-          <Pressable key={option.id} disabled={checked} onPress={() => setSelectedId(option.id)}>
+          <Pressable
+            key={option.id}
+            disabled={checked}
+            onPress={() => setSelectedId(option.id)}
+            accessibilityRole="button"
+            accessibilityLabel={option.label}
+            accessibilityState={{selected: selectedId === option.id, disabled: checked}}>
             <Card style={{borderColor: borderFor(option.id), borderWidth: 2}}>
               <Text variant="body">{option.label}</Text>
             </Card>

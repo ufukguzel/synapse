@@ -1,7 +1,7 @@
 import {FlatList, Pressable, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {Badge, Card, EmptyState, ErrorView, LoadingView, ProgressBar, Screen, Text} from '@/components';
+import {Badge, Card, EmptyState, ErrorView, LoadingView, RingProgress, Screen, Text} from '@/components';
 import {useCourses, useUserStats} from '@/hooks';
 import {useAuth, useTheme} from '@/providers';
 import {formatXp} from '@/utils';
@@ -39,23 +39,39 @@ export const HomeScreen = () => {
             <Text variant="h1">
               Hi{profile?.display_name ? `, ${profile.display_name}` : ''} 👋
             </Text>
-            <Card style={{gap: theme.spacing.sm}}>
-              <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-                <Text variant="bodyStrong">Today's goal</Text>
-                <Text
-                  variant="caption"
-                  color={goalMet ? theme.colors.success : theme.colors.textSecondary}>
-                  {goalMet ? '✓ done' : `${minutesToday} / ${dailyGoal} min`}
-                </Text>
-              </View>
-              <ProgressBar value={goalProgress} />
-              <View style={{flexDirection: 'row', gap: theme.spacing.lg, marginTop: theme.spacing.xs}}>
-                <Text variant="caption" color={theme.colors.textSecondary}>
-                  🔥 {stats.data?.current_streak ?? 0} day streak
-                </Text>
-                <Text variant="caption" color={theme.colors.textSecondary}>
-                  ⚡ {formatXp(stats.data?.total_xp ?? 0)} XP
-                </Text>
+            <Card>
+              <View style={{flexDirection: 'row', alignItems: 'center', gap: theme.spacing.base}}>
+                <RingProgress
+                  value={goalProgress}
+                  fillColor={goalMet ? theme.colors.success : theme.colors.primary}>
+                  {goalMet ? (
+                    <Text variant="h2" color={theme.colors.success}>
+                      ✓
+                    </Text>
+                  ) : (
+                    <View style={{alignItems: 'center'}}>
+                      <Text variant="h2">{minutesToday}</Text>
+                      <Text variant="caption" color={theme.colors.textSecondary}>
+                        / {dailyGoal}
+                      </Text>
+                    </View>
+                  )}
+                </RingProgress>
+
+                <View style={{flex: 1, gap: theme.spacing.xs}}>
+                  <Text variant="bodyStrong">Today's goal</Text>
+                  <Text variant="caption" color={theme.colors.textSecondary}>
+                    {goalMet ? 'Goal reached — nice work!' : `${minutesToday} of ${dailyGoal} min`}
+                  </Text>
+                  <View style={{flexDirection: 'row', gap: theme.spacing.base, marginTop: theme.spacing.xxs}}>
+                    <Text variant="caption" color={theme.colors.textSecondary}>
+                      🔥 {stats.data?.current_streak ?? 0}
+                    </Text>
+                    <Text variant="caption" color={theme.colors.textSecondary}>
+                      ⚡ {formatXp(stats.data?.total_xp ?? 0)} XP
+                    </Text>
+                  </View>
+                </View>
               </View>
             </Card>
             <Text variant="h3">Courses</Text>

@@ -226,3 +226,49 @@ begin
 
   raise notice 'GUARD ASSERTIONS PASSED';
 end $$;
+
+-- 9. Expanded library: the A2 course path gates across units, and completing
+--    its first vocabulary lesson enrols that lesson's words.
+do $$
+declare
+  v_user uuid;
+  v_res  jsonb;
+  v_cnt  int;
+  v_st   text;
+begin
+  insert into auth.users (email) values ('library@example.com') returning id into v_user;
+  perform set_config('app.uid', v_user::text, false);
+
+  -- A2 course = 2222…; 2 units × 2 lessons = 4 in the path.
+  select count(*) into v_cnt
+    from public.lesson_states('22222222-2222-2222-2222-222222222222');
+  if v_cnt <> 4 then
+    raise exception 'FAIL: A2 course should have 4 lessons in path, got %', v_cnt;
+  end if;
+
+  select status::text into v_st
+    from public.lesson_states('22222222-2222-2222-2222-222222222222') where seq = 1;
+  if v_st <> 'available' then
+    raise exception 'FAIL: A2 lesson 1 should be available, got %', v_st;
+  end if;
+  select status::text into v_st
+    from public.lesson_states('22222222-2222-2222-2222-222222222222') where seq = 2;
+  if v_st <> 'locked' then
+    raise exception 'FAIL: A2 lesson 2 should be locked, got %', v_st;
+  end if;
+
+  -- Completing "At the market" enrols its three linked words.
+  v_res := public.complete_lesson('bbbbbbb2-0000-0000-0000-000000000001', 100, 6);
+  if (v_res->>'xp_awarded')::int <> 25 or (v_res->>'enrolled_count')::int <> 3 then
+    raise exception 'FAIL: A2 market lesson completion wrong: %', v_res;
+  end if;
+
+  -- ...which unlocks the next lesson in the unit.
+  select status::text into v_st
+    from public.lesson_states('22222222-2222-2222-2222-222222222222') where seq = 2;
+  if v_st <> 'available' then
+    raise exception 'FAIL: A2 lesson 2 should unlock after lesson 1, got %', v_st;
+  end if;
+
+  raise notice 'EXPANDED-LIBRARY ASSERTIONS PASSED';
+end $$;

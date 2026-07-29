@@ -13,6 +13,13 @@ export const QueryProvider = ({children}: {children: ReactNode}) => {
             gcTime: QUERY_GC_TIME_MS,
             retry: 2,
             refetchOnWindowFocus: false,
+            // Recover automatically when the device comes back online.
+            refetchOnReconnect: true,
+          },
+          mutations: {
+            // Don't silently replay writes (lesson completion, reviews) — a
+            // failed mutation surfaces so the caller can decide.
+            retry: 0,
           },
         },
       }),

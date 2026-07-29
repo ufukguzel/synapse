@@ -1,6 +1,8 @@
 /* eslint-env jest */
+// v3 moved the bundled mock to the `./jest` subpath; its default export is a
+// ready-to-use in-memory AsyncStorage instance.
 jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+  require('@react-native-async-storage/async-storage/jest').default,
 );
 
 jest.mock('react-native-safe-area-context', () => {

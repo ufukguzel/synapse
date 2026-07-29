@@ -67,6 +67,24 @@ describe('useLessonSession', () => {
     expect(session.current.isFinished).toBe(true);
   });
 
+  it('fails the session once all hearts are spent', () => {
+    const ex = Array.from({length: 6}, (_, i) => exercise(`e${i + 1}`));
+    const session = renderSession(ex);
+
+    // Five wrong answers empties the five-heart bar.
+    for (let i = 0; i < 5; i++) {
+      act(() => session.current.submit({isCorrect: false, userAnswer: 'x'}));
+    }
+    expect(session.current.hearts).toBe(0);
+    expect(session.current.isFailed).toBe(true);
+    // Still one exercise left, so failure is not the same as finishing.
+    expect(session.current.isFinished).toBe(false);
+
+    act(() => session.current.reset());
+    expect(session.current.isFailed).toBe(false);
+    expect(session.current.hearts).toBe(5);
+  });
+
   it('times each exercise from when it is shown to when it is answered', () => {
     const session = renderSession([exercise('e1'), exercise('e2')]);
 

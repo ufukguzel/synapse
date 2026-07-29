@@ -4,6 +4,7 @@ import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native'
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useQuery} from '@tanstack/react-query';
 import {
+  Button,
   EmptyState,
   ErrorView,
   ExerciseRenderer,
@@ -40,7 +41,10 @@ export const LessonScreen = () => {
   const finalizedRef = useRef(false);
 
   useEffect(() => {
-    if (!session.isFinished || finalizedRef.current) {
+    // Running out of hearts ends the lesson without completing it, so it must
+    // not trigger the completion RPC — even if the last wrong answer also
+    // pushed the index past the end (isFinished && isFailed at once).
+    if (session.isFailed || !session.isFinished || finalizedRef.current) {
       return;
     }
     finalizedRef.current = true;
@@ -94,6 +98,34 @@ export const LessonScreen = () => {
         actionLabel="Go back"
         onAction={navigation.goBack}
       />
+    );
+  }
+
+  // Out of hearts: the lesson ends here. Nothing is recorded — the learner
+  // retries the whole lesson or leaves.
+  if (session.isFailed) {
+    return (
+      <Screen>
+        <View style={{flex: 1, justifyContent: 'center', gap: theme.spacing.lg}}>
+          <Text variant="display" center>
+            💔
+          </Text>
+          <Text variant="h1" center>
+            Out of hearts
+          </Text>
+          <Text variant="body" center color={theme.colors.textSecondary}>
+            You ran out of hearts. Give the lesson another go — you've got this.
+          </Text>
+          <View style={{gap: theme.spacing.sm}}>
+            <Button label="Try again" onPress={session.reset} />
+            <Button
+              label="Back to lessons"
+              variant="ghost"
+              onPress={() => navigation.navigate('Main', {screen: 'HomeTab'})}
+            />
+          </View>
+        </View>
+      </Screen>
     );
   }
 

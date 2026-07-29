@@ -27,21 +27,21 @@ values
    'Introducing yourself', 'grammar', 2, 25, 6, true)
 on conflict (id) do nothing;
 
-insert into public.exercises (lesson_id, kind, prompt, payload, order_index)
+insert into public.exercises (id, lesson_id, kind, prompt, payload, order_index)
 values
-  ('bbbbbbb1-0000-0000-0000-000000000001', 'multiple_choice',
+  ('ccccccc0-0000-0000-0000-000000000001', 'bbbbbbb1-0000-0000-0000-000000000001', 'multiple_choice',
    'Which greeting fits the morning?',
    '{"options":[{"id":"a","label":"Good morning"},{"id":"b","label":"Good night"},{"id":"c","label":"See you"}],"correctOptionId":"a","explanation":"\"Good morning\" is used until about noon."}',
    1),
-  ('bbbbbbb1-0000-0000-0000-000000000001', 'fill_blank',
+  ('ccccccc0-0000-0000-0000-000000000002', 'bbbbbbb1-0000-0000-0000-000000000001', 'fill_blank',
    'Complete the sentence.',
    '{"template":"___ afternoon, Mr. Yilmaz.","answers":["good"]}',
    2),
-  ('bbbbbbb1-0000-0000-0000-000000000001', 'word_order',
+  ('ccccccc0-0000-0000-0000-000000000003', 'bbbbbbb1-0000-0000-0000-000000000001', 'word_order',
    'Put the words in the right order.',
    '{"tokens":["nice","to","meet","you"],"correctOrder":[0,1,2,3]}',
    3)
-on conflict do nothing;
+on conflict (id) do nothing;
 
 -- Lesson 2 exercises the remaining kinds, one of each.
 insert into public.exercises (id, lesson_id, kind, prompt, payload, audio_url, order_index)

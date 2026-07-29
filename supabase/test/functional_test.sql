@@ -37,6 +37,21 @@ begin
   perform set_config('app.uid', v_user::text, false);
 
   ---------------------------------------------------------------------------
+  -- 1b. Seed is idempotent: run.sh applies it twice, so exercise counts must
+  --     still be exactly what the seed declares (no duplicates).
+  ---------------------------------------------------------------------------
+  select count(*) into v_cnt from public.exercises
+    where lesson_id = 'bbbbbbb1-0000-0000-0000-000000000001';
+  if v_cnt <> 3 then
+    raise exception 'FAIL: lesson 1 should have 3 exercises (seed not idempotent?), got %', v_cnt;
+  end if;
+  select count(*) into v_cnt from public.exercises
+    where lesson_id = 'bbbbbbb1-0000-0000-0000-000000000002';
+  if v_cnt <> 4 then
+    raise exception 'FAIL: lesson 2 should have 4 exercises (seed not idempotent?), got %', v_cnt;
+  end if;
+
+  ---------------------------------------------------------------------------
   -- 2. lesson_states: first lesson open, second locked
   ---------------------------------------------------------------------------
   select status into v_row from public.lesson_states('11111111-1111-1111-1111-111111111111')

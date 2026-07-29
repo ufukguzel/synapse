@@ -1,11 +1,11 @@
 import {useEffect, useRef, useState} from 'react';
-import {View} from 'react-native';
+import {Pressable, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import {Button, Card, EmptyState, ErrorView, LoadingView, ProgressBar, Screen, Text} from '@/components';
 import {vocabularyApi} from '@/api';
 import {XP_PER_VOCABULARY_REVIEW} from '@/constants';
-import {useRecordActivity} from '@/hooks';
+import {useRecordActivity, useToggleFavorite} from '@/hooks';
 import {useAuth, useTheme} from '@/providers';
 import {scheduleNextReview} from '@/utils';
 
@@ -23,6 +23,8 @@ export const VocabularyReviewScreen = () => {
 
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
+  // Instant star feedback; reconciled with the server value on refetch.
+  const [favOverride, setFavOverride] = useState<Record<string, boolean>>({});
 
   const dueQuery = useQuery({
     queryKey: ['vocab-due', user?.id],
@@ -32,6 +34,7 @@ export const VocabularyReviewScreen = () => {
 
   const saveReview = useMutation({mutationFn: vocabularyApi.saveReview});
   const recordActivity = useRecordActivity();
+  const toggleFavorite = useToggleFavorite();
 
   const items = dueQuery.data ?? [];
   const current = items[index];
@@ -99,10 +102,34 @@ export const VocabularyReviewScreen = () => {
   };
 
   const word = current.vocabulary_items;
+  const isFavorite = favOverride[current.id] ?? current.is_favorite;
+
+  const onToggleFavorite = () => {
+    const next = !isFavorite;
+    setFavOverride(prev => ({...prev, [current.id]: next}));
+    toggleFavorite.mutate({id: current.id, isFavorite: next});
+  };
 
   return (
     <Screen>
-      <ProgressBar value={index / items.length} style={{marginBottom: theme.spacing.lg}} />
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.md,
+          marginBottom: theme.spacing.lg,
+        }}>
+        <ProgressBar value={index / items.length} style={{flex: 1}} />
+        <Pressable
+          onPress={onToggleFavorite}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}>
+          <Text variant="h3" color={isFavorite ? theme.colors.accent : theme.colors.textTertiary}>
+            {isFavorite ? '★' : '☆'}
+          </Text>
+        </Pressable>
+      </View>
 
       <Card style={{flex: 1, justifyContent: 'center', gap: theme.spacing.md}}>
         <Text variant="display" center>

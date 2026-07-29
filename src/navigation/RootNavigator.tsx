@@ -6,6 +6,7 @@ import {CourseDetailScreen} from '@/screens/home/CourseDetailScreen';
 import {LessonResultScreen} from '@/screens/lesson/LessonResultScreen';
 import {LessonScreen} from '@/screens/lesson/LessonScreen';
 import {VocabularyReviewScreen} from '@/screens/practice/VocabularyReviewScreen';
+import {FavoritesScreen} from '@/screens/practice/FavoritesScreen';
 import {SettingsScreen} from '@/screens/profile/SettingsScreen';
 import {AuthNavigator} from './AuthNavigator';
 import {MainTabNavigator} from './MainTabNavigator';
@@ -70,6 +71,11 @@ export const RootNavigator = () => {
               name="VocabularyReview"
               component={VocabularyReviewScreen}
               options={{headerShown: true, title: 'Review'}}
+            />
+            <Stack.Screen
+              name="Favorites"
+              component={FavoritesScreen}
+              options={{headerShown: true, title: 'Favorites'}}
             />
             <Stack.Screen
               name="Settings"

@@ -26,6 +26,19 @@ export const PracticeScreen = () => {
             style={{marginTop: theme.spacing.sm}}
           />
         </Card>
+
+        <Card style={{gap: theme.spacing.sm}}>
+          <Text variant="h3">Favorites</Text>
+          <Text variant="caption" color={theme.colors.textSecondary}>
+            The words you've starred, all in one place.
+          </Text>
+          <Button
+            label="View favorites"
+            variant="secondary"
+            onPress={() => navigation.navigate('Favorites')}
+            style={{marginTop: theme.spacing.sm}}
+          />
+        </Card>
       </View>
     </Screen>
   );

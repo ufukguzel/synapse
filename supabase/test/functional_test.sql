@@ -161,6 +161,20 @@ begin
     raise exception 'FAIL: daily goal should be met after lesson 2: %', v_res;
   end if;
 
+  ---------------------------------------------------------------------------
+  -- 8. Favorites: starring an enrolled word surfaces it in the favorites query
+  ---------------------------------------------------------------------------
+  update public.user_vocabulary set is_favorite = true
+    where user_id = v_user
+      and vocabulary_id = (
+        select id from public.vocabulary_items where headword = 'greeting' and level = 'A1'
+      );
+  select count(*) into v_cnt
+    from public.user_vocabulary where user_id = v_user and is_favorite;
+  if v_cnt <> 1 then
+    raise exception 'FAIL: expected 1 favorite, got %', v_cnt;
+  end if;
+
   raise notice 'ALL HAPPY-PATH ASSERTIONS PASSED';
 end $$;
 

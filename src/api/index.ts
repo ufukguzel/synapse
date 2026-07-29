@@ -3,4 +3,4 @@ export {coursesApi} from './courses';
 export {lessonsApi} from './lessons';
 export {vocabularyApi} from './vocabulary';
 export {streaksApi} from './streaks';
-export type {DueReviewItem} from './vocabulary';
+export type {DueReviewItem, UserVocabularyWithItem} from './vocabulary';

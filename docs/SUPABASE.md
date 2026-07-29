@@ -17,6 +17,9 @@ Files run in filename order:
 | `20260728120000_lesson_completion.sql` | `lesson_vocabulary` table + RLS, `complete_lesson` RPC + grant |
 | `20260728130000_lesson_states.sql` | `lesson_states` RPC (progression gating) + grant |
 | `20260728140000_user_stats.sql` | `user_stats` RPC (profile aggregates) + grant |
+| `20260728150000_new_user_profile.sql` | `handle_new_user` reads language/timezone from metadata |
+| `20260728160000_user_stats_goal.sql` | `user_stats` gains `daily_goal_minutes` / `goal_met_today` |
+| `20260728170000_favorite_index.sql` | partial index for the favorites query |
 
 ## Testing migrations
 
@@ -56,7 +59,7 @@ seed scripts, or the Supabase dashboard).
 |---|---|
 | `profiles` | 1:1 with `auth.users`, created by trigger |
 | `user_lesson_progress` | unique on `(user_id, lesson_id)`; upserted on completion |
-| `user_vocabulary` | SM-2 state; `(user_id, due_at)` index drives the review queue |
+| `user_vocabulary` | SM-2 state; `(user_id, due_at)` index drives the review queue, a partial `(user_id) where is_favorite` index drives favorites |
 | `user_streaks` | one row per user, maintained by `record_activity` |
 | `daily_activity` | one row per user per day, unique on `(user_id, activity_date)` |
 

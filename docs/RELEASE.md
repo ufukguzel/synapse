@@ -47,8 +47,10 @@ What's production-ready, and the steps + honest gaps before shipping to stores.
 These are intentionally deferred — none block a first release, but they're the next
 milestones and each needs a real device/native module (not verifiable in CI):
 
-- **Daily reminder push notifications** — `ReminderSetupScreen` is a placeholder; wire a
-  notifications library and schedule from the profile's `daily_goal_minutes` / timezone.
+- **Daily reminder push notifications** — the preference (`reminder_enabled` /
+  `reminder_hour`), the onboarding + settings UI, and the scheduler seam
+  (`src/services/notifications`) are built; only a native driver needs registering. See
+  [NOTIFICATIONS.md](NOTIFICATIONS.md).
 - **Offline lesson cache** — currently every screen needs the network.
 - **Real audio clips + registered drivers** — populate `exercises.audio_url` and register
   an audio player / speech recognizer (see [MEDIA.md](MEDIA.md)).

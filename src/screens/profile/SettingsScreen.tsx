@@ -1,16 +1,19 @@
 import {useState} from 'react';
-import {Alert, Pressable, View} from 'react-native';
+import {Alert, Pressable, Switch, View} from 'react-native';
 import {Badge, Button, Card, Input, Screen, Text} from '@/components';
 import {APP_NAME, CEFR_LABELS, CEFR_LEVELS, DAILY_GOAL_OPTIONS} from '@/constants';
-import {useUpdateProfile} from '@/hooks';
+import {formatHour, useDailyReminder, useUpdateProfile} from '@/hooks';
 import {useAuth, useTheme} from '@/providers';
 import {formatMinutes} from '@/utils';
 import type {CefrLevel} from '@/types';
+
+const HOUR_OPTIONS = [8, 12, 18, 20, 21];
 
 export const SettingsScreen = () => {
   const theme = useTheme();
   const {signOut, user, profile} = useAuth();
   const updateProfile = useUpdateProfile();
+  const reminder = useDailyReminder();
 
   const [name, setName] = useState(profile?.display_name ?? '');
   const nameChanged = name.trim().length > 0 && name.trim() !== (profile?.display_name ?? '');
@@ -97,6 +100,54 @@ export const SettingsScreen = () => {
               </Pressable>
             );
           })}
+        </View>
+
+        {/* Daily reminder */}
+        <View style={{gap: theme.spacing.sm}}>
+          <Text variant="h3">Daily reminder</Text>
+          <Card style={{gap: theme.spacing.md}}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+              <Text variant="bodyStrong">Remind me to study</Text>
+              <Switch
+                value={reminder.enabled}
+                onValueChange={reminder.setEnabled}
+                disabled={reminder.isSaving}
+                trackColor={{true: theme.colors.primary, false: theme.colors.surfaceAlt}}
+              />
+            </View>
+            {reminder.enabled && (
+              <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm}}>
+                {HOUR_OPTIONS.map(h => {
+                  const active = reminder.hour === h;
+                  return (
+                    <Pressable
+                      key={h}
+                      onPress={() => reminder.setHour(h)}
+                      disabled={reminder.isSaving}
+                      style={{
+                        paddingHorizontal: theme.spacing.md,
+                        paddingVertical: theme.spacing.sm,
+                        borderRadius: theme.radius.md,
+                        borderWidth: active ? 2 : 1,
+                        borderColor: active ? theme.colors.primary : theme.colors.border,
+                        backgroundColor: active ? theme.colors.primarySoft : theme.colors.surface,
+                      }}>
+                      <Text
+                        variant="bodyStrong"
+                        color={active ? theme.colors.primary : theme.colors.text}>
+                        {formatHour(h)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          </Card>
         </View>
 
         <Button label="Sign out" variant="danger" onPress={confirmSignOut} />

@@ -32,6 +32,8 @@ export type Profile = {
   daily_goal_minutes: number;
   timezone: string;
   onboarding_completed: boolean;
+  reminder_enabled: boolean;
+  reminder_hour: number;
   created_at: string;
   updated_at: string;
 }

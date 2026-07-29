@@ -28,11 +28,30 @@ begin
     raise exception 'FAIL: streak row not created by trigger';
   end if;
   -- No language/timezone in this user's metadata → column defaults.
-  select native_language, timezone into v_row from public.profiles where id = v_user;
+  select native_language, timezone, reminder_enabled, reminder_hour
+    into v_row from public.profiles where id = v_user;
   if v_row.native_language <> 'tr' or v_row.timezone <> 'Europe/Istanbul' then
     raise exception 'FAIL: profile defaults wrong: lang=% tz=%',
       v_row.native_language, v_row.timezone;
   end if;
+  -- Reminder defaults: off, 20:00.
+  if v_row.reminder_enabled is not false or v_row.reminder_hour <> 20 then
+    raise exception 'FAIL: reminder defaults wrong: enabled=% hour=%',
+      v_row.reminder_enabled, v_row.reminder_hour;
+  end if;
+
+  -- Enabling a reminder at a valid hour persists; an out-of-range hour is rejected.
+  update public.profiles set reminder_enabled = true, reminder_hour = 8 where id = v_user;
+  select reminder_enabled, reminder_hour into v_row from public.profiles where id = v_user;
+  if v_row.reminder_enabled is not true or v_row.reminder_hour <> 8 then
+    raise exception 'FAIL: reminder update did not persist: %', v_row;
+  end if;
+  begin
+    update public.profiles set reminder_hour = 25 where id = v_user;
+    raise exception 'FAIL: reminder_hour 25 should violate the check constraint';
+  exception when check_violation then
+    null; -- expected
+  end;
 
   perform set_config('app.uid', v_user::text, false);
 

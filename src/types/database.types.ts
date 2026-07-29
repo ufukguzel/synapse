@@ -170,6 +170,8 @@ export type UserStats = {
   total_xp: number;
   minutes_today: number;
   minutes_week: number;
+  daily_goal_minutes: number;
+  goal_met_today: boolean;
   lessons_completed: number;
   words_learned: number;
   words_due: number;

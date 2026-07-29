@@ -82,10 +82,12 @@ await supabase.rpc('enroll_vocabulary', {p_vocabulary_id: id});
 const {data} = await supabase.rpc('lesson_states', {p_course_id: id});
 // data → [{ lesson_id, unit_id, seq, status, score, is_available }, …]
 
-// Everything the profile screen shows, in one call
+// Everything the profile + home screens show, in one call
 const {data} = await supabase.rpc('user_stats');
-// data → { current_streak, longest_streak, total_xp, minutes_today,
-//          minutes_week, lessons_completed, words_learned, words_due }
+// data → { current_streak, longest_streak, total_xp,
+//          minutes_today, minutes_week,
+//          daily_goal_minutes, goal_met_today,
+//          lessons_completed, words_learned, words_due }
 ```
 
 All five are `security definer` and read `auth.uid()` internally, so the caller cannot

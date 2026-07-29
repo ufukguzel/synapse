@@ -2,7 +2,7 @@ import {FlatList, Pressable, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {Badge, Card, EmptyState, ErrorView, LoadingView, ProgressBar, Screen, Text} from '@/components';
-import {useCourses, useStreak} from '@/hooks';
+import {useCourses, useUserStats} from '@/hooks';
 import {useAuth, useTheme} from '@/providers';
 import {formatXp} from '@/utils';
 import type {RootStackParamList} from '@/navigation/types';
@@ -14,7 +14,7 @@ export const HomeScreen = () => {
   const navigation = useNavigation<Nav>();
   const {profile} = useAuth();
   const courses = useCourses(profile?.current_level);
-  const streak = useStreak();
+  const stats = useUserStats();
 
   if (courses.isLoading) {
     return <LoadingView />;
@@ -23,7 +23,10 @@ export const HomeScreen = () => {
     return <ErrorView error={courses.error} onRetry={courses.refetch} />;
   }
 
-  const dailyGoal = profile?.daily_goal_minutes ?? 10;
+  const dailyGoal = stats.data?.daily_goal_minutes ?? profile?.daily_goal_minutes ?? 10;
+  const minutesToday = stats.data?.minutes_today ?? 0;
+  const goalMet = stats.data?.goal_met_today ?? false;
+  const goalProgress = dailyGoal > 0 ? Math.min(1, minutesToday / dailyGoal) : 0;
 
   return (
     <Screen padded={false}>
@@ -39,17 +42,19 @@ export const HomeScreen = () => {
             <Card style={{gap: theme.spacing.sm}}>
               <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
                 <Text variant="bodyStrong">Today's goal</Text>
-                <Text variant="caption" color={theme.colors.textSecondary}>
-                  {dailyGoal} min
+                <Text
+                  variant="caption"
+                  color={goalMet ? theme.colors.success : theme.colors.textSecondary}>
+                  {goalMet ? '✓ done' : `${minutesToday} / ${dailyGoal} min`}
                 </Text>
               </View>
-              <ProgressBar value={0} />
+              <ProgressBar value={goalProgress} />
               <View style={{flexDirection: 'row', gap: theme.spacing.lg, marginTop: theme.spacing.xs}}>
                 <Text variant="caption" color={theme.colors.textSecondary}>
-                  🔥 {streak.data?.current_streak ?? 0} day streak
+                  🔥 {stats.data?.current_streak ?? 0} day streak
                 </Text>
                 <Text variant="caption" color={theme.colors.textSecondary}>
-                  ⚡ {formatXp(streak.data?.total_xp ?? 0)} XP
+                  ⚡ {formatXp(stats.data?.total_xp ?? 0)} XP
                 </Text>
               </View>
             </Card>

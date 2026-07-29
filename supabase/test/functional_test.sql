@@ -138,6 +138,11 @@ begin
      or (v_res->>'words_due')::int <> 3 then
     raise exception 'FAIL: user_stats wrong: %', v_res;
   end if;
+  -- Default goal is 10 min; 8 min studied today → not met yet.
+  if (v_res->>'daily_goal_minutes')::int <> 10
+     or (v_res->>'goal_met_today')::boolean is not false then
+    raise exception 'FAIL: daily goal wrong (expected 10, not met): %', v_res;
+  end if;
 
   ---------------------------------------------------------------------------
   -- 7. Completing lesson 2 (no linked vocab) adds its own xp_reward
@@ -149,6 +154,11 @@ begin
   v_res := public.user_stats();
   if (v_res->>'total_xp')::int <> 45 or (v_res->>'lessons_completed')::int <> 2 then
     raise exception 'FAIL: totals after lesson 2 wrong: %', v_res;
+  end if;
+  -- 12 min studied today (5 + 3 + 4) now clears the 10-min goal.
+  if (v_res->>'minutes_today')::int <> 12
+     or (v_res->>'goal_met_today')::boolean is not true then
+    raise exception 'FAIL: daily goal should be met after lesson 2: %', v_res;
   end if;
 
   raise notice 'ALL HAPPY-PATH ASSERTIONS PASSED';

@@ -19,6 +19,9 @@ export const useLessons = (unitId: string | undefined) =>
     enabled: !!unitId,
   });
 
+export const useCourseProgress = () =>
+  useQuery({queryKey: ['course-progress'], queryFn: () => coursesApi.progress()});
+
 export const lessonStatesQueryKey = (courseId: string) => ['lesson-states', courseId] as const;
 
 export const useLessonStates = (courseId: string | undefined) =>

@@ -180,6 +180,13 @@ export type UserStats = {
   words_favorite: number;
 }
 
+/** One row of the `course_progress` RPC — completion per course for the user. */
+export type CourseProgress = {
+  course_id: string;
+  total_lessons: number;
+  completed_lessons: number;
+}
+
 type TableDef<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
   Insert: Insert;
@@ -223,6 +230,10 @@ export type Database = {
       user_stats: {
         Args: Record<string, never>;
         Returns: UserStats;
+      };
+      course_progress: {
+        Args: Record<string, never>;
+        Returns: CourseProgress[];
       };
     };
     Enums: {

@@ -195,6 +195,14 @@ begin
     raise exception 'FAIL: daily goal should be met after lesson 2: %', v_res;
   end if;
 
+  -- Course progress: A1 has 4 published lessons; Ada completed 2.
+  select total_lessons, completed_lessons into v_row
+    from public.course_progress() where course_id = '11111111-1111-1111-1111-111111111111';
+  if v_row.total_lessons <> 4 or v_row.completed_lessons <> 2 then
+    raise exception 'FAIL: A1 course progress wrong: %/%',
+      v_row.completed_lessons, v_row.total_lessons;
+  end if;
+
   ---------------------------------------------------------------------------
   -- 8. Favorites: starring an enrolled word surfaces it in the favorites query
   ---------------------------------------------------------------------------

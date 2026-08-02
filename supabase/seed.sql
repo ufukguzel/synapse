@@ -358,3 +358,35 @@ values
   ('arrive', '/əˈraɪv/', 'To reach a place.', 'varmak', 'We arrived at midnight.', 'A2', array['travel']),
   ('yesterday', '/ˈjes.tə.deɪ/', 'The day before today.', 'dün', 'I saw him yesterday.', 'A2', array['time'])
 on conflict (headword, level) do nothing;
+
+-- Lesson vocabulary -------------------------------------------------------------
+-- Which words each lesson teaches. complete_lesson() enrols these into the SRS
+-- queue on first completion, which is how the review deck fills itself.
+-- Selected by headword+level so a re-run stays idempotent and a missing word
+-- silently maps nothing rather than failing the whole seed.
+--
+-- The functional test pins lesson 1 to exactly these three words - if the list
+-- changes, update supabase/test/functional_test.sql with it.
+insert into public.lesson_vocabulary (lesson_id, vocabulary_id, order_index)
+select l.lesson_id::uuid, v.id, row_number() over (partition by l.lesson_id order by v.headword)
+from (values
+  -- A1
+  ('bbbbbbb1-0000-0000-0000-000000000001', array['greeting','introduce','afternoon'], 'A1'),
+  ('bbbbbbb1-0000-0000-0000-000000000003', array['name','friend','neighbour'], 'A1'),
+  ('bbbbbbb1-0000-0000-0000-000000000004', array['number','twelve','fifteen','hour','minute'], 'A1'),
+  ('bbbbbbb1-0000-0000-0000-000000000005', array['early','late'], 'A1'),
+  ('bbbbbbb1-0000-0000-0000-000000000006', array['week','month','today','tomorrow'], 'A1'),
+  ('bbbbbbb1-0000-0000-0000-000000000007', array['bread','water','tea','coffee','cheese','breakfast'], 'A1'),
+  ('bbbbbbb1-0000-0000-0000-000000000008', array['menu','bill'], 'A1'),
+  ('bbbbbbb1-0000-0000-0000-000000000010', array['library','station','pharmacy','museum','street','corner'], 'A1'),
+  ('bbbbbbb1-0000-0000-0000-000000000011', array['left','right','straight','near'], 'A1'),
+  ('bbbbbbb1-0000-0000-0000-000000000012', array['busy','quiet'], 'A1'),
+  -- A2
+  ('bbbbbbb2-0000-0000-0000-000000000001', array['price','cheap','expensive','discount','receipt'], 'A2'),
+  ('bbbbbbb2-0000-0000-0000-000000000003', array['recommend','review','quality'], 'A2'),
+  ('bbbbbbb2-0000-0000-0000-000000000004', array['yesterday'], 'A2'),
+  ('bbbbbbb2-0000-0000-0000-000000000006', array['journey','flight','gate','luggage','delayed','arrive'], 'A2')
+) as l(lesson_id, words, lvl)
+join public.vocabulary_items v
+  on v.headword = any(l.words) and v.level::text = l.lvl
+on conflict do nothing;

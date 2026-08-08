@@ -1,12 +1,11 @@
-import {useEffect, useRef, useState} from 'react';
-import {Pressable, View} from 'react-native';
+import {useState} from 'react';
+import {View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {useMutation} from '@tanstack/react-query';
 import {Button, Card, EmptyState, ErrorView, LoadingView, ProgressBar, Screen, Text} from '@/components';
 import {vocabularyApi} from '@/api';
-import {XP_PER_VOCABULARY_REVIEW} from '@/constants';
-import {useRecordActivity, useToggleFavorite} from '@/hooks';
-import {useAuth, useTheme} from '@/providers';
+import {useDueVocabulary} from '@/hooks';
+import {useTheme} from '@/providers';
 import {scheduleNextReview} from '@/utils';
 
 const QUALITY_BUTTONS = [
@@ -19,44 +18,12 @@ const QUALITY_BUTTONS = [
 export const VocabularyReviewScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation();
-  const {user} = useAuth();
 
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
-  // Instant star feedback; reconciled with the server value on refetch.
-  const [favOverride, setFavOverride] = useState<Record<string, boolean>>({});
 
-  const dueQuery = useQuery({
-    queryKey: ['vocab-due', user?.id],
-    queryFn: () => vocabularyApi.due(user!.id),
-    enabled: !!user?.id,
-  });
-
+  const dueQuery = useDueVocabulary();
   const saveReview = useMutation({mutationFn: vocabularyApi.saveReview});
-  const recordActivity = useRecordActivity();
-  const toggleFavorite = useToggleFavorite();
-
-  const items = dueQuery.data ?? [];
-  const current = items[index];
-  const isFinished = items.length > 0 && index >= items.length;
-
-  const startedAtRef = useRef(Date.now());
-  const finalizedRef = useRef(false);
-
-  // Reviews earn XP and keep the streak alive, same as a lesson does.
-  useEffect(() => {
-    if (!isFinished || finalizedRef.current || !user?.id) {
-      return;
-    }
-    finalizedRef.current = true;
-    const elapsedMs = Date.now() - startedAtRef.current;
-    recordActivity.mutate({
-      minutes: Math.max(1, Math.round(elapsedMs / 60_000)),
-      xp: items.length * XP_PER_VOCABULARY_REVIEW,
-      lessons: 0,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isFinished, user?.id]);
 
   if (dueQuery.isLoading) {
     return <LoadingView />;
@@ -64,6 +31,9 @@ export const VocabularyReviewScreen = () => {
   if (dueQuery.isError) {
     return <ErrorView error={dueQuery.error} onRetry={dueQuery.refetch} />;
   }
+
+  const items = dueQuery.data ?? [];
+  const current = items[index];
 
   if (!items.length) {
     return (
@@ -102,34 +72,10 @@ export const VocabularyReviewScreen = () => {
   };
 
   const word = current.vocabulary_items;
-  const isFavorite = favOverride[current.id] ?? current.is_favorite;
-
-  const onToggleFavorite = () => {
-    const next = !isFavorite;
-    setFavOverride(prev => ({...prev, [current.id]: next}));
-    toggleFavorite.mutate({id: current.id, isFavorite: next});
-  };
 
   return (
     <Screen>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.md,
-          marginBottom: theme.spacing.lg,
-        }}>
-        <ProgressBar value={index / items.length} style={{flex: 1}} />
-        <Pressable
-          onPress={onToggleFavorite}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}>
-          <Text variant="h3" color={isFavorite ? theme.colors.accent : theme.colors.textTertiary}>
-            {isFavorite ? '★' : '☆'}
-          </Text>
-        </Pressable>
-      </View>
+      <ProgressBar value={index / items.length} style={{marginBottom: theme.spacing.lg}} />
 
       <Card style={{flex: 1, justifyContent: 'center', gap: theme.spacing.md}}>
         <Text variant="display" center>

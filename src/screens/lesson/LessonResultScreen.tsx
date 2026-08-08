@@ -1,7 +1,7 @@
 import {View} from 'react-native';
 import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {Button, Card, Screen, Text} from '@/components';
+import {Button, Card, Screen, SynapseMark, Text} from '@/components';
 import {useTheme} from '@/providers';
 import type {RootStackParamList} from '@/navigation/types';
 
@@ -14,35 +14,70 @@ export const LessonResultScreen = () => {
   const {params} = useRoute<Route>();
 
   const percent = Math.round(params.accuracy * 100);
+  const failed = params.failed === true;
+
+  /**
+   * Copy follows the brand voice: a calm coach describing what happened to the
+   * learner's memory, not a scoreboard shouting at them.
+   */
+  const eyebrow = failed ? 'Session ended' : 'Pathway strengthened';
+  const heading = failed
+    ? 'Out of hearts'
+    : percent >= 80
+    ? 'That one stuck'
+    : 'Pathway is forming';
+  const subline = failed
+    ? 'Nothing lost — the lesson stays open. Come back when you are ready.'
+    : percent >= 80
+    ? 'Nice — that pathway just got stronger. One more and it sticks.'
+    : 'Some of it landed. A second pass will do the rest.';
 
   return (
     <Screen>
       <View style={{flex: 1, justifyContent: 'center', gap: theme.spacing.lg}}>
-        <Text variant="display" center>
-          {percent >= 80 ? '🎉' : '💪'}
-        </Text>
+        <View style={{alignItems: 'center', gap: theme.spacing.md}}>
+          <SynapseMark size={72} variant={failed ? 'mono' : 'gradient'} color={theme.colors.textTertiary} />
+          <Text variant="overline" color={failed ? theme.colors.textTertiary : theme.colors.success}>
+            {eyebrow}
+          </Text>
+        </View>
         <Text variant="h1" center>
-          {percent >= 80 ? 'Lesson complete!' : 'Keep practising'}
+          {heading}
+        </Text>
+        <Text variant="bodyLg" center color={theme.colors.textSecondary}>
+          {subline}
         </Text>
 
-        <Card style={{gap: theme.spacing.md}}>
-          <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-            <Text variant="body" color={theme.colors.textSecondary}>
+        {/* Two big numbers read faster than a label/value list on a reward screen. */}
+        <View style={{flexDirection: 'row', gap: theme.spacing.md}}>
+          <Card
+            gradient={failed ? undefined : 'accent'}
+            style={{flex: 1, alignItems: 'center', gap: theme.spacing.xxs}}>
+            <Text variant="display" color={failed ? theme.colors.text : theme.palette.white}>
+              +{params.xp}
+            </Text>
+            <Text
+              variant="caption"
+              color={failed ? theme.colors.textSecondary : 'rgba(255, 255, 255, 0.85)'}>
               XP earned
             </Text>
-            <Text variant="bodyStrong">+{params.xp}</Text>
-          </View>
-          <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-            <Text variant="body" color={theme.colors.textSecondary}>
+          </Card>
+          <Card style={{flex: 1, alignItems: 'center', gap: theme.spacing.xxs}}>
+            <Text variant="display">{percent}%</Text>
+            <Text variant="caption" color={theme.colors.textSecondary}>
               Accuracy
             </Text>
-            <Text variant="bodyStrong">{percent}%</Text>
-          </View>
-        </Card>
+          </Card>
+        </View>
       </View>
 
       <View style={{paddingBottom: theme.spacing.lg}}>
-        <Button label="Done" onPress={() => navigation.navigate('Main', {screen: 'HomeTab'})} />
+        <Button
+          label={failed ? 'Back to lessons' : 'Done'}
+          size="lg"
+          variant={failed ? 'secondary' : 'primary'}
+          onPress={() => navigation.navigate('Main', {screen: 'HomeTab'})}
+        />
       </View>
     </Screen>
   );

@@ -8,6 +8,7 @@ export type AuthStackParamList = {
 };
 
 export type OnboardingStackParamList = {
+  LanguageSelect: undefined;
   LevelSelect: undefined;
   GoalSelect: undefined;
   ReminderSetup: undefined;
@@ -15,6 +16,7 @@ export type OnboardingStackParamList = {
 
 export type MainTabParamList = {
   HomeTab: undefined;
+  TasksTab: undefined;
   PracticeTab: undefined;
   ProfileTab: undefined;
 };
@@ -25,7 +27,7 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>;
   CourseDetail: {courseId: string; title?: string};
   Lesson: {lessonId: string; title?: string};
-  LessonResult: {lessonId: string; xp: number; accuracy: number};
+  LessonResult: {lessonId: string; xp: number; accuracy: number; failed?: boolean};
   VocabularyReview: undefined;
   Favorites: undefined;
   Settings: undefined;

@@ -20,9 +20,9 @@ export const Input = ({label, error, hint, style, ...rest}: InputProps) => {
     : theme.colors.border;
 
   return (
-    <View style={{gap: theme.spacing.xs}}>
+    <View style={{gap: theme.spacing.sm}}>
       {!!label && (
-        <Text variant="caption" color={theme.colors.textSecondary}>
+        <Text variant="caption" color={theme.colors.textSecondary} style={styles.label}>
           {label}
         </Text>
       )}
@@ -39,12 +39,19 @@ export const Input = ({label, error, hint, style, ...rest}: InputProps) => {
         placeholderTextColor={theme.colors.textTertiary}
         style={[
           styles.input,
-          theme.textVariants.body,
+          theme.textVariants.bodyLg,
           {
             color: theme.colors.text,
-            backgroundColor: theme.colors.surfaceAlt,
+            backgroundColor: error
+              ? theme.colors.dangerSoft
+              : focused
+              ? theme.colors.surface
+              : theme.colors.surfaceAlt,
             borderColor,
-            borderRadius: theme.radius.md,
+            // A thicker ring on focus/error reads clearly without shifting layout,
+            // because the border box is the same size at both weights.
+            borderWidth: focused || !!error ? 2 : 1.5,
+            borderRadius: theme.radius.lg,
             paddingHorizontal: theme.spacing.base,
           },
           style,
@@ -60,5 +67,6 @@ export const Input = ({label, error, hint, style, ...rest}: InputProps) => {
 };
 
 const styles = StyleSheet.create({
-  input: {height: 48, borderWidth: 1},
+  input: {height: 56},
+  label: {fontWeight: '600'},
 });

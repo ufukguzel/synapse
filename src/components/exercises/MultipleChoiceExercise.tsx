@@ -1,8 +1,9 @@
 import {useState} from 'react';
 import {Pressable, View} from 'react-native';
-import {Button, Card, Text} from '@/components/ui';
+import {Button, Text} from '@/components/ui';
 import {useTheme} from '@/providers';
 import type {MultipleChoicePayload} from '@/types';
+import {AnswerFeedback} from './AnswerFeedback';
 
 export interface MultipleChoiceExerciseProps {
   prompt: string;
@@ -10,58 +11,93 @@ export interface MultipleChoiceExerciseProps {
   onSubmit: (isCorrect: boolean, answer: string) => void;
 }
 
-export const MultipleChoiceExercise = ({prompt, payload, onSubmit}: MultipleChoiceExerciseProps) => {
+export const MultipleChoiceExercise = ({
+  prompt,
+  payload,
+  onSubmit,
+}: MultipleChoiceExerciseProps) => {
   const theme = useTheme();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
 
   const isCorrect = selectedId === payload.correctOptionId;
 
-  const borderFor = (optionId: string) => {
+  /**
+   * Options carry their state in the fill as well as the border - a 2px border
+   * change alone is easy to miss, especially for the "this was the right answer"
+   * row the learner did not pick.
+   */
+  const toneFor = (optionId: string) => {
     if (!checked) {
-      return selectedId === optionId ? theme.colors.primary : theme.colors.border;
+      const selected = selectedId === optionId;
+      return {
+        border: selected ? theme.colors.primary : theme.colors.border,
+        background: selected ? theme.colors.primarySoft : theme.colors.surface,
+        text: theme.colors.text,
+      };
     }
     if (optionId === payload.correctOptionId) {
-      return theme.colors.success;
+      return {
+        border: theme.colors.success,
+        background: theme.colors.successSoft,
+        text: theme.colors.text,
+      };
     }
-    return optionId === selectedId ? theme.colors.danger : theme.colors.border;
+    if (optionId === selectedId) {
+      return {
+        border: theme.colors.danger,
+        background: theme.colors.dangerSoft,
+        text: theme.colors.text,
+      };
+    }
+    return {
+      border: theme.colors.border,
+      background: theme.colors.surface,
+      text: theme.colors.textTertiary,
+    };
   };
 
   return (
-    <View style={{gap: theme.spacing.base, flex: 1}}>
+    <View style={{gap: theme.spacing.lg, flex: 1}}>
       <Text variant="h2">{prompt}</Text>
 
-      <View style={{gap: theme.spacing.sm}}>
-        {payload.options.map(option => (
-          <Pressable
-            key={option.id}
-            disabled={checked}
-            onPress={() => setSelectedId(option.id)}
-            accessibilityRole="button"
-            accessibilityLabel={option.label}
-            accessibilityState={{selected: selectedId === option.id, disabled: checked}}>
-            <Card style={{borderColor: borderFor(option.id), borderWidth: 2}}>
-              <Text variant="body">{option.label}</Text>
-            </Card>
-          </Pressable>
-        ))}
+      <View style={{gap: theme.spacing.md}}>
+        {payload.options.map(option => {
+          const tone = toneFor(option.id);
+          return (
+            <Pressable
+              key={option.id}
+              disabled={checked}
+              onPress={() => setSelectedId(option.id)}
+              style={({pressed}) => ({
+                borderColor: tone.border,
+                backgroundColor: tone.background,
+                borderWidth: 2,
+                borderRadius: theme.radius.lg,
+                paddingVertical: theme.spacing.base,
+                paddingHorizontal: theme.spacing.base,
+                opacity: pressed ? 0.9 : 1,
+              })}>
+              <Text variant="bodyLg" color={tone.text}>
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
-      {checked && !!payload.explanation && (
-        <Text variant="caption" color={theme.colors.textSecondary}>
-          {payload.explanation}
-        </Text>
-      )}
+      {checked && <AnswerFeedback isCorrect={isCorrect} explanation={payload.explanation} />}
 
       <View style={{marginTop: 'auto'}}>
         {checked ? (
           <Button
             label="Continue"
-            variant={isCorrect ? 'primary' : 'danger'}
+            size="lg"
+            variant={isCorrect ? 'success' : 'danger'}
             onPress={() => onSubmit(isCorrect, selectedId ?? '')}
           />
         ) : (
-          <Button label="Check" disabled={!selectedId} onPress={() => setChecked(true)} />
+          <Button label="Check" size="lg" disabled={!selectedId} onPress={() => setChecked(true)} />
         )}
       </View>
     </View>

@@ -1,8 +1,8 @@
 import {useState} from 'react';
-import {Pressable, View} from 'react-native';
+import {View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {Button, Card, Screen, Text} from '@/components';
+import {Button, OptionRow, Screen, StepHeader} from '@/components';
 import {DAILY_GOAL_OPTIONS} from '@/constants';
 import {useUpdateProfile} from '@/hooks';
 import {useTheme} from '@/providers';
@@ -10,6 +10,15 @@ import {formatMinutes} from '@/utils';
 import type {OnboardingStackParamList} from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<OnboardingStackParamList, 'GoalSelect'>;
+
+/** Keyed by the minute values in DAILY_GOAL_OPTIONS. */
+const GOAL_HINTS: Record<number, string> = {
+  5: 'One short session - easiest to keep up.',
+  10: 'The sweet spot for most learners.',
+  15: 'Steady progress without a big time commitment.',
+  20: 'Two sessions a day, or one longer one.',
+  30: 'Serious pace. Best if you already have a routine.',
+};
 
 export const GoalSelectScreen = () => {
   const theme = useTheme();
@@ -23,33 +32,32 @@ export const GoalSelectScreen = () => {
   };
 
   return (
-    <Screen scroll>
-      <View style={{gap: theme.spacing.base}}>
-        <Text variant="h1">Daily goal</Text>
-        <Text variant="body" color={theme.colors.textSecondary}>
-          Consistency beats intensity. Start small.
-        </Text>
+    <Screen scroll contentContainerStyle={{padding: theme.spacing.base}}>
+      <View style={{gap: theme.spacing.lg}}>
+        <StepHeader
+          step={3}
+          total={4}
+          title="Daily goal"
+          subtitle="Consistency beats intensity. Start small."
+        />
 
-        {DAILY_GOAL_OPTIONS.map(option => {
-          const isActive = minutes === option;
-          return (
-            <Pressable key={option} onPress={() => setMinutes(option)}>
-              <Card
-                style={{
-                  borderColor: isActive ? theme.colors.primary : theme.colors.border,
-                  borderWidth: isActive ? 2 : 1,
-                }}>
-                <Text variant="bodyStrong">{formatMinutes(option)} a day</Text>
-              </Card>
-            </Pressable>
-          );
-        })}
+        <View style={{gap: theme.spacing.md}}>
+          {DAILY_GOAL_OPTIONS.map(option => (
+            <OptionRow
+              key={option}
+              title={`${formatMinutes(option)} a day`}
+              description={GOAL_HINTS[option]}
+              selected={minutes === option}
+              onPress={() => setMinutes(option)}
+            />
+          ))}
+        </View>
 
         <Button
           label="Continue"
+          size="lg"
           loading={updateProfile.isPending}
           onPress={onContinue}
-          style={{marginTop: theme.spacing.base}}
         />
       </View>
     </Screen>

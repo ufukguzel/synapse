@@ -1,10 +1,24 @@
 import {supabase} from '@/services/supabase';
-import type {DailyActivity, UserStats, UserStreak} from '@/types';
+import type {DailyActivity, UserStreak} from '@/types';
+
+export interface ActivityInput {
+  minutes?: number;
+  xp?: number;
+  lessons?: number;
+}
 
 export const streaksApi = {
-  /** Aggregate profile stats in one round-trip (see the `user_stats` RPC). */
-  async stats(): Promise<UserStats> {
-    const {data, error} = await supabase.rpc('user_stats');
+  /**
+   * Records a finished session and advances the streak. The database function
+   * owns the streak arithmetic (and derives the user from auth.uid()), so the
+   * client only reports what happened.
+   */
+  async recordActivity({minutes = 0, xp = 0, lessons = 0}: ActivityInput): Promise<UserStreak> {
+    const {data, error} = await supabase.rpc('record_activity', {
+      p_minutes: minutes,
+      p_xp: xp,
+      p_lessons: lessons,
+    });
     if (error) {
       throw error;
     }
@@ -17,26 +31,6 @@ export const streaksApi = {
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
-    if (error) {
-      throw error;
-    }
-    return data;
-  },
-
-  /**
-   * Writes today's activity and advances the streak in one transaction.
-   * The RPC derives the user from `auth.uid()`, so there is no userId to pass.
-   */
-  async recordActivity(params: {
-    minutes?: number;
-    xp?: number;
-    lessons?: number;
-  }): Promise<UserStreak> {
-    const {data, error} = await supabase.rpc('record_activity', {
-      p_minutes: params.minutes ?? 0,
-      p_xp: params.xp ?? 0,
-      p_lessons: params.lessons ?? 0,
-    });
     if (error) {
       throw error;
     }

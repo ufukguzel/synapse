@@ -1,47 +1,27 @@
 import {Component, type ErrorInfo, type ReactNode} from 'react';
-import {StyleSheet, View} from 'react-native';
-import {useTheme} from '@/providers';
+import {View} from 'react-native';
 import {Button, Text} from '@/components/ui';
+import {darkColors, radius, spacing} from '@/theme';
 
 interface Props {
   children: ReactNode;
+  /** Hook for a crash reporter once one is wired up. */
+  onError?: (error: Error, info: ErrorInfo) => void;
 }
 
 interface State {
   error: Error | null;
 }
 
-/** Shown when a render throws — themed, standalone (no navigation needed). */
-const ErrorBoundaryFallback = ({error, onReset}: {error: Error; onReset: () => void}) => {
-  const theme = useTheme();
-  return (
-    <View
-      style={[
-        styles.container,
-        {backgroundColor: theme.colors.background, padding: theme.spacing.xl, gap: theme.spacing.md},
-      ]}>
-      <Text variant="display" center>
-        😵‍💫
-      </Text>
-      <Text variant="h2" center>
-        Something went wrong
-      </Text>
-      <Text variant="body" center color={theme.colors.textSecondary}>
-        The app hit an unexpected error. You can try again — your progress is saved.
-      </Text>
-      {__DEV__ && (
-        <Text variant="caption" center color={theme.colors.textTertiary}>
-          {error.message}
-        </Text>
-      )}
-      <Button label="Try again" onPress={onReset} fullWidth={false} testID="error-reload" />
-    </View>
-  );
-};
-
 /**
- * Catches render errors anywhere below it and shows a recovery screen instead
- * of a white screen / crash. Wraps the whole app in App.tsx.
+ * Catches render-time crashes below it.
+ *
+ * Without this a single thrown error in any screen unmounts the whole tree and
+ * leaves a blank white screen with no way back - the worst possible failure mode,
+ * because the user cannot even report what they were doing.
+ *
+ * Styling comes from the raw tokens rather than useTheme: the provider itself may
+ * be part of what failed, and the fallback has to render regardless.
  */
 export class ErrorBoundary extends Component<Props, State> {
   state: State = {error: null};
@@ -51,20 +31,51 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Wire a crash reporter (Sentry, Bugsnag, …) here before launch.
-    console.error('[Synapse] Uncaught render error', error, info.componentStack);
+    this.props.onError?.(error, info);
+    // Keep the stack in the dev console; a reporter replaces this in production.
+    console.error('[Synapse] uncaught render error', error, info.componentStack);
   }
 
-  reset = () => this.setState({error: null});
+  private reset = () => this.setState({error: null});
 
   render() {
-    if (this.state.error) {
-      return <ErrorBoundaryFallback error={this.state.error} onReset={this.reset} />;
+    const {error} = this.state;
+    if (!error) {
+      return this.props.children;
     }
-    return this.props.children;
+
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: darkColors.background,
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: spacing.xl,
+          gap: spacing.md,
+        }}>
+        <Text variant="h2" center color={darkColors.text}>
+          Something interrupted us
+        </Text>
+        <Text variant="body" center color={darkColors.textSecondary}>
+          Your progress is saved. Try again, and if it keeps happening a restart
+          will clear it.
+        </Text>
+
+        <View
+          style={{
+            backgroundColor: darkColors.surface,
+            borderRadius: radius.card,
+            padding: spacing.md,
+            alignSelf: 'stretch',
+          }}>
+          <Text variant="caption" color={darkColors.textTertiary}>
+            {error.message || 'Unknown error'}
+          </Text>
+        </View>
+
+        <Button label="Try again" onPress={this.reset} fullWidth={false} />
+      </View>
+    );
   }
 }
-
-const styles = StyleSheet.create({
-  container: {flex: 1, alignItems: 'center', justifyContent: 'center'},
-});

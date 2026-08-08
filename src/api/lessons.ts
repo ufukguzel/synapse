@@ -1,5 +1,11 @@
 import {supabase} from '@/services/supabase';
-import type {AnyExercise, Exercise, Lesson, UserLessonProgress} from '@/types';
+import type {
+  AnyExercise,
+  CompleteLessonResult,
+  Exercise,
+  Lesson,
+  UserLessonProgress,
+} from '@/types';
 
 const toTypedExercise = (row: Exercise): AnyExercise =>
   ({
@@ -40,6 +46,27 @@ export const lessonsApi = {
       throw error;
     }
     return data ?? [];
+  },
+
+  /**
+   * Atomic completion via the `complete_lesson` RPC: marks progress, awards XP
+   * server-side (from `xp_reward`, first completion only), advances the streak
+   * and auto-enrols the lesson's vocabulary — one call, no farming.
+   */
+  async completeLesson(params: {
+    lessonId: string;
+    score: number;
+    minutes: number;
+  }): Promise<CompleteLessonResult> {
+    const {data, error} = await supabase.rpc('complete_lesson', {
+      p_lesson_id: params.lessonId,
+      p_score: params.score,
+      p_minutes: params.minutes,
+    });
+    if (error) {
+      throw error;
+    }
+    return data;
   },
 
   async complete(params: {userId: string; lessonId: string; score: number}) {

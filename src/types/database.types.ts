@@ -139,6 +139,14 @@ export type UserStreak = {
   updated_at: string;
 }
 
+/** Return shape of the `complete_lesson` RPC. */
+export type CompleteLessonResult = {
+  is_first_completion: boolean;
+  xp_awarded: number;
+  enrolled_count: number;
+  streak: UserStreak;
+}
+
 export type DailyActivity = {
   id: string;
   user_id: string;
@@ -229,6 +237,10 @@ export type Database = {
       strengthen_region: {
         Args: {p_region_code: string; p_amount?: number};
         Returns: UserRegionStrength;
+      };
+      complete_lesson: {
+        Args: {p_lesson_id: string; p_score?: number; p_minutes?: number};
+        Returns: CompleteLessonResult;
       };
     };
     Enums: {

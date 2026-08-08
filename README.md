@@ -63,8 +63,7 @@ src/
 ├── providers/    # Theme, Auth, QueryClient
 ├── screens/      # auth · onboarding · home · lesson · practice · profile
 ├── services/
-│   ├── supabase/ # Client instance + auth wrapper
-│   └── media/    # Audio / speech driver registries (see docs/MEDIA.md)
+│   └── supabase/ # Client instance + auth wrapper
 ├── theme/        # Design tokens: colors, typography, spacing, radius, shadow
 ├── types/        # Database types + exercise payload types
 └── utils/        # SRS (SM-2), answer grading, validation, formatting
@@ -97,25 +96,17 @@ npx supabase gen types typescript --project-id <ref> --schema public > src/types
 
 ### Data model
 
-- **Content** — `courses → units → lessons → exercises`, plus a standalone `vocabulary_items` bank and a `lesson_vocabulary` link table. Readable by any signed-in user, but only when `is_published`.
+- **Content** — `courses → units → lessons → exercises`, plus a standalone `vocabulary_items` bank. Readable by any signed-in user, but only when `is_published`.
 - **Progress** — `user_lesson_progress`, `user_vocabulary` (SM-2 review state), `user_streaks`, `daily_activity`. Every row is locked to `auth.uid()` by RLS.
 - **Triggers** — a new `auth.users` row automatically gets a `profiles` and a `user_streaks` row.
-- **RPC** — `complete_lesson(lesson, score, minutes)` marks a lesson done, awards its XP (server-side, from `xp_reward`, first completion only), advances the streak and enrols the lesson's vocabulary — atomically; `lesson_states(course)` returns each lesson's gating state (locked / available / in_progress / completed); `user_stats()` returns the profile aggregates (streak, XP, weekly minutes, lesson/word counts) in one call; `record_activity(minutes, xp, lessons)` backs vocabulary review; `enroll_vocabulary(id)` adds a single word to the queue. See [docs/SUPABASE.md](docs/SUPABASE.md).
+- **RPC** — `record_activity(minutes, xp, lessons)` writes today's activity and advances the streak atomically; `enroll_vocabulary(id)` adds a word to the review queue.
 
 ### Exercise payloads
 
 `exercises.payload` is `jsonb`; its shape depends on `exercises.kind`. The TypeScript contract for each kind lives in `src/types/exercise.ts`, and `ExerciseRenderer` maps a kind to its component. Adding an exercise type means: extend the `exercise_kind` enum, add a payload interface, add a component, register it in the renderer.
 
-All seven kinds are implemented: `multiple_choice`, `fill_blank`, `word_order`,
-`match_pairs`, `translate`, `listen_type`, `speak_repeat`. The `switch` in
-`ExerciseRenderer` is exhaustive over `ExerciseKind`, so adding a kind to the enum
-breaks the typecheck until it has a renderer.
-
-`listen_type` and `speak_repeat` reach the device through the audio / speech
-**drivers** in `src/services/media`. No driver ships registered — until one is,
-`listen_type` degrades to a spelling drill and `speak_repeat` to a self-assessed
-check, so a lesson stays playable either way. See [docs/MEDIA.md](docs/MEDIA.md)
-for how to wire a real one.
+Implemented: `multiple_choice`, `fill_blank`, `word_order`.
+Stubbed (falls back to a "coming soon" card): `match_pairs`, `listen_type`, `speak_repeat`, `translate`.
 
 ## Design system
 
@@ -126,17 +117,13 @@ propagates everywhere — no hard-coded hex values in screens.
 
 ## Status
 
-Feature-complete for a first release: auth flow, onboarding, course browsing with a gated
-lesson path (locked until the previous lesson is done), a playable lesson loop with
-hearts/XP that ends on both success and running out of hearts, all seven exercise types,
-SM-2 vocabulary review with favorites, streak + daily-goal tracking, an editable profile,
-and a top-level error boundary. Screens are functional but styled with **placeholder design
-tokens**, not the final designs.
+Working skeleton: auth flow, onboarding, course browsing, a playable lesson loop with
+hearts/XP, SM-2 vocabulary review, profile and settings. Screens are functional but
+**not yet styled to the final designs**.
 
-Finishing a lesson calls the `complete_lesson` RPC (progress + server-side XP + streak +
-vocabulary enrolment, atomically); a review session calls `record_activity`. Both advance
-the streak and log today's minutes/XP/lesson count. Study time is measured per exercise —
-each one is timed from when it appears to when it is answered.
-
-See [docs/RELEASE.md](docs/RELEASE.md) for the go-live checklist and what's deferred to
-post-launch (push notifications, offline cache, real audio/speech drivers, design assets).
+Next up:
+- [ ] Apply the design files (colors, type, spacing, icons, illustrations)
+- [ ] Remaining exercise types (audio + speech)
+- [ ] Call `record_activity` when a lesson completes
+- [ ] Push notifications for the daily reminder
+- [ ] Offline lesson cache

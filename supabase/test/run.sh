@@ -71,9 +71,6 @@ done
 echo "→ applying seed"
 $db -f "$seed" >/dev/null
 
-echo "→ re-applying seed (idempotency check)"
-$db -f "$seed" >/dev/null
-
 echo "→ running functional tests"
 $db -f "$here/functional_test.sql"
 

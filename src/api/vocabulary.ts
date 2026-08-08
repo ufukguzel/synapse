@@ -1,16 +1,12 @@
 import {supabase} from '@/services/supabase';
 import type {CefrLevel, UserVocabulary, VocabularyItem} from '@/types';
 
-/** A user_vocabulary row with its word joined in. */
-export interface UserVocabularyWithItem extends UserVocabulary {
+export interface DueReviewItem extends UserVocabulary {
   vocabulary_items: VocabularyItem | null;
 }
 
-/** @deprecated name kept for callers; use UserVocabularyWithItem. */
-export type DueReviewItem = UserVocabularyWithItem;
-
 export const vocabularyApi = {
-  async due(userId: string, limit = 20): Promise<UserVocabularyWithItem[]> {
+  async due(userId: string, limit = 20): Promise<DueReviewItem[]> {
     const {data, error} = await supabase
       .from('user_vocabulary')
       .select('*, vocabulary_items(*)')
@@ -21,20 +17,7 @@ export const vocabularyApi = {
     if (error) {
       throw error;
     }
-    return (data ?? []) as unknown as UserVocabularyWithItem[];
-  },
-
-  async favorites(userId: string): Promise<UserVocabularyWithItem[]> {
-    const {data, error} = await supabase
-      .from('user_vocabulary')
-      .select('*, vocabulary_items(*)')
-      .eq('user_id', userId)
-      .eq('is_favorite', true)
-      .order('last_reviewed_at', {ascending: false, nullsFirst: false});
-    if (error) {
-      throw error;
-    }
-    return (data ?? []) as unknown as UserVocabularyWithItem[];
+    return (data ?? []) as unknown as DueReviewItem[];
   },
 
   async saveReview(params: {

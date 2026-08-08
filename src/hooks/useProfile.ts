@@ -22,8 +22,6 @@ export const useUpdateProfile = () => {
     mutationFn: (patch: Partial<Profile>) => profilesApi.update(user!.id, patch),
     onSuccess: async () => {
       await queryClient.invalidateQueries({queryKey: profileQueryKey(user!.id)});
-      // daily_goal_minutes feeds user_stats (the home screen's goal ring).
-      queryClient.invalidateQueries({queryKey: ['user-stats']});
       await refreshProfile();
     },
   });

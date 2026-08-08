@@ -6,7 +6,6 @@ import {CourseDetailScreen} from '@/screens/home/CourseDetailScreen';
 import {LessonResultScreen} from '@/screens/lesson/LessonResultScreen';
 import {LessonScreen} from '@/screens/lesson/LessonScreen';
 import {VocabularyReviewScreen} from '@/screens/practice/VocabularyReviewScreen';
-import {FavoritesScreen} from '@/screens/practice/FavoritesScreen';
 import {SettingsScreen} from '@/screens/profile/SettingsScreen';
 import {AuthNavigator} from './AuthNavigator';
 import {MainTabNavigator} from './MainTabNavigator';
@@ -57,25 +56,12 @@ export const RootNavigator = () => {
             <Stack.Screen
               name="LessonResult"
               component={LessonResultScreen}
-              // Slides up like a modal but stays a normal card so the finished
-              // Lesson can be `replace`d cleanly. `replace` into a real
-              // `presentation: 'modal'` screen makes native-stack dismiss the
-              // outgoing card and present a modal at once, which leaves the two
-              // stacked on top of each other during the transition. The bottom
-              // slide keeps the celebratory feel without that contradiction;
-              // the screen is full-bleed so nothing shows behind it, and the
-              // back gesture is off since the lesson underneath is already gone.
-              options={{animation: 'slide_from_bottom', gestureEnabled: false}}
+              options={{presentation: 'modal'}}
             />
             <Stack.Screen
               name="VocabularyReview"
               component={VocabularyReviewScreen}
               options={{headerShown: true, title: 'Review'}}
-            />
-            <Stack.Screen
-              name="Favorites"
-              component={FavoritesScreen}
-              options={{headerShown: true, title: 'Favorites'}}
             />
             <Stack.Screen
               name="Settings"

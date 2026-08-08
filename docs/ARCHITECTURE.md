@@ -14,10 +14,6 @@ services/supabase Client instance, auth wrapper
 Supabase          Postgres + RLS + RPC
 ```
 
-`services/media` sits outside that stack: it is a driver registry for audio playback
-and speech recognition, so the exercise components can call the device without
-depending on a native module. See [MEDIA.md](MEDIA.md).
-
 Rules of thumb:
 
 - **Screens never import `supabase` directly.** They go through `hooks/` → `api/`.

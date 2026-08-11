@@ -2,9 +2,9 @@ import {SectionList, Pressable, View} from 'react-native';
 import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useQueries} from '@tanstack/react-query';
-import {Badge, Card, EmptyState, ErrorView, LoadingView, Screen, Text} from '@/components';
+import {Badge, Card, EmptyState, ErrorView, LoadingView, ProgressBar, Screen, Text} from '@/components';
 import {coursesApi} from '@/api';
-import {useLessonStates, useUnits} from '@/hooks';
+import {useCourseProgress, useLessonStates, useUnits} from '@/hooks';
 import {useTheme} from '@/providers';
 import type {Lesson, ProgressStatus} from '@/types';
 import type {RootStackParamList} from '@/navigation/types';
@@ -20,6 +20,8 @@ export const CourseDetailScreen = () => {
   const units = useUnits(params.courseId);
   const unitList = units.data ?? [];
   const states = useLessonStates(params.courseId);
+  const progress = useCourseProgress();
+  const courseProgress = progress.data?.find(c => c.course_id === params.courseId);
 
   const lessonQueries = useQueries({
     queries: unitList.map(unit => ({
@@ -53,6 +55,21 @@ export const CourseDetailScreen = () => {
         contentContainerStyle={{padding: theme.spacing.base, gap: theme.spacing.sm}}
         stickySectionHeadersEnabled={false}
         ListEmptyComponent={<EmptyState title="No units yet" />}
+        ListHeaderComponent={
+          courseProgress && courseProgress.total_lessons > 0 ? (
+            <Card style={{gap: theme.spacing.sm, marginBottom: theme.spacing.sm}}>
+              <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+                <Text variant="bodyStrong">Course progress</Text>
+                <Text variant="caption" color={theme.colors.textSecondary}>
+                  {courseProgress.completed_lessons} / {courseProgress.total_lessons} lessons
+                </Text>
+              </View>
+              <ProgressBar
+                value={courseProgress.completed_lessons / courseProgress.total_lessons}
+              />
+            </Card>
+          ) : null
+        }
         renderSectionHeader={({section}) => (
           <Text variant="h3" style={{marginTop: theme.spacing.base, marginBottom: theme.spacing.sm}}>
             {section.title}

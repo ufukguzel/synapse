@@ -58,8 +58,9 @@ export const LessonScreen = () => {
       queryClient.invalidateQueries({queryKey: ['streak', user.id]});
       queryClient.invalidateQueries({queryKey: ['daily-activity', user.id]});
       queryClient.invalidateQueries({queryKey: ['profile', user.id]});
-      // Completing a lesson can unlock the next one.
+      // Completing a lesson can unlock the next one and moves course progress.
       queryClient.invalidateQueries({queryKey: ['lesson-states']});
+      queryClient.invalidateQueries({queryKey: ['course-progress']});
     },
   });
 

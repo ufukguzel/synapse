@@ -25,3 +25,6 @@ export const useLessonStates = (courseId: string | undefined) =>
     queryFn: () => coursesApi.lessonStates(courseId!),
     enabled: !!courseId,
   });
+
+export const useCourseProgress = () =>
+  useQuery({queryKey: ['course-progress'], queryFn: () => coursesApi.progress()});

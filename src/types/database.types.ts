@@ -157,6 +157,13 @@ export type LessonState = {
   is_available: boolean;
 }
 
+/** One row of the `course_progress` RPC — completed vs total lessons per course. */
+export type CourseProgress = {
+  course_id: string;
+  total_lessons: number;
+  completed_lessons: number;
+}
+
 export type DailyActivity = {
   id: string;
   user_id: string;
@@ -255,6 +262,10 @@ export type Database = {
       lesson_states: {
         Args: {p_course_id: string};
         Returns: LessonState[];
+      };
+      course_progress: {
+        Args: Record<string, never>;
+        Returns: CourseProgress[];
       };
     };
     Enums: {

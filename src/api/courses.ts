@@ -1,5 +1,5 @@
 import {supabase} from '@/services/supabase';
-import type {CefrLevel, Course, Lesson, LessonState, Unit} from '@/types';
+import type {CefrLevel, Course, CourseProgress, Lesson, LessonState, Unit} from '@/types';
 
 export const coursesApi = {
   async list(level?: CefrLevel): Promise<Course[]> {
@@ -46,6 +46,15 @@ export const coursesApi = {
   /** Per-lesson gating for a course (locked / available / in_progress / completed). */
   async lessonStates(courseId: string): Promise<LessonState[]> {
     const {data, error} = await supabase.rpc('lesson_states', {p_course_id: courseId});
+    if (error) {
+      throw error;
+    }
+    return data ?? [];
+  },
+
+  /** Completed vs total lessons per course for the current user. */
+  async progress(): Promise<CourseProgress[]> {
+    const {data, error} = await supabase.rpc('course_progress');
     if (error) {
       throw error;
     }

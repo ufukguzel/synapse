@@ -1,8 +1,10 @@
 import {EmptyState} from '@/components/common';
 import type {AnyExercise} from '@/types';
 import {FillBlankExercise} from './FillBlankExercise';
+import {ListenTypeExercise} from './ListenTypeExercise';
 import {MatchPairsExercise} from './MatchPairsExercise';
 import {MultipleChoiceExercise} from './MultipleChoiceExercise';
+import {SpeakRepeatExercise} from './SpeakRepeatExercise';
 import {TranslateExercise} from './TranslateExercise';
 import {WordOrderExercise} from './WordOrderExercise';
 
@@ -44,11 +46,30 @@ export const ExerciseRenderer = ({exercise, onSubmit}: ExerciseRendererProps) =>
       return (
         <TranslateExercise prompt={exercise.prompt} payload={exercise.payload} onSubmit={onSubmit} />
       );
+    case 'listen_type':
+      return (
+        <ListenTypeExercise
+          prompt={exercise.prompt}
+          payload={exercise.payload}
+          audioUrl={exercise.audioUrl}
+          onSubmit={onSubmit}
+        />
+      );
+    case 'speak_repeat':
+      return (
+        <SpeakRepeatExercise
+          prompt={exercise.prompt}
+          payload={exercise.payload}
+          onSubmit={onSubmit}
+        />
+      );
     default:
+      // All seven kinds are handled above; this guards an unknown kind from the
+      // server (e.g. a newer enum value than this build knows).
       return (
         <EmptyState
-          title="Coming soon"
-          description={`The "${exercise.kind}" exercise type is not implemented yet.`}
+          title="Unsupported exercise"
+          description={`This build cannot render the "${(exercise as AnyExercise).kind}" type.`}
           actionLabel="Skip"
           onAction={() => onSubmit(true, '')}
         />

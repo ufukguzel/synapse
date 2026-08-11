@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {StyleSheet, View} from 'react-native';
+import {Alert, Pressable, StyleSheet, View} from 'react-native';
 import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -64,6 +64,14 @@ export const LessonScreen = () => {
     },
   });
 
+  // Leaving mid-lesson throws away the in-progress run, so confirm first.
+  const confirmQuit = () => {
+    Alert.alert('Quit lesson?', "Your progress in this lesson won't be saved.", [
+      {text: 'Keep going', style: 'cancel'},
+      {text: 'Quit', style: 'destructive', onPress: () => navigation.goBack()},
+    ]);
+  };
+
   // Finish/fail fires the effect; guard so completion runs exactly once.
   const finalizedRef = useRef(false);
 
@@ -124,6 +132,17 @@ export const LessonScreen = () => {
     <Screen>
       <View style={{gap: theme.spacing.md, marginBottom: theme.spacing.xl}}>
         <View style={styles.topRow}>
+          {/* An always-visible way out of the session (Duolingo-style close). */}
+          <Pressable
+            onPress={confirmQuit}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Quit lesson"
+            style={({pressed}) => ({opacity: pressed ? 0.5 : 1})}>
+            <Text variant="h3" color={theme.colors.textTertiary}>
+              ✕
+            </Text>
+          </Pressable>
           <ProgressBar value={session.progress} style={styles.flex} />
           {/* Spent hearts stay visible as dimmed glyphs so the cost is legible. */}
           <Text variant="bodyStrong">

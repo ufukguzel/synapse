@@ -8,12 +8,19 @@ import {
   Card,
   ErrorView,
   GradientSurface,
+  LanguageBridge,
   LoadingView,
   NeuralPattern,
   ProgressBar,
   StatChip,
   Text,
 } from '@/components';
+import {
+  DEFAULT_LEARNING_LANGUAGE,
+  findLanguage,
+  LEARNING_LANGUAGES,
+  NATIVE_LANGUAGES,
+} from '@/constants';
 import {
   useCourseOutline,
   useCourses,
@@ -65,6 +72,12 @@ export const HomeScreen = () => {
 
   const firstName = profile?.display_name?.split(' ')[0];
   const dueCount = due.data?.length ?? 0;
+
+  // The two ends of the learner's bridge: what they speak and what they're building.
+  const nativeLang = findLanguage(NATIVE_LANGUAGES, profile?.native_language);
+  const learningLang =
+    findLanguage(LEARNING_LANGUAGES, profile?.learning_language) ??
+    findLanguage(LEARNING_LANGUAGES, DEFAULT_LEARNING_LANGUAGE)!;
 
   const regionList = regions.data ?? [];
   // The weakest region is what the plan should attack next.
@@ -136,7 +149,28 @@ export const HomeScreen = () => {
           paddingBottom: theme.spacing.xxl,
           gap: theme.spacing.lg,
         }}>
-        {/* 1 - the signature brain map */}
+        {/* 1 - the language bridge: what you speak → what you're learning */}
+        <Card style={{gap: theme.spacing.base}}>
+          <Text variant="bodyStrong">Your language bridge</Text>
+          <LanguageBridge
+            native={{
+              flag: nativeLang?.flag ?? '🗣️',
+              name: nativeLang?.nativeName ?? 'Your language',
+              role: 'You speak',
+            }}
+            learning={{
+              flag: learningLang.flag,
+              name: learningLang.nativeName,
+              role: 'Learning',
+            }}
+          />
+          <Text variant="caption" center color={theme.colors.textTertiary}>
+            Every lesson strengthens the path from {nativeLang?.englishName ?? 'your language'} to{' '}
+            {learningLang.englishName}.
+          </Text>
+        </Card>
+
+        {/* 2 - the signature brain map */}
         <Card style={{gap: theme.spacing.base, alignItems: 'center'}}>
           <View style={[styles.row, styles.fullWidth]}>
             <Text variant="bodyStrong">Your brain today</Text>
@@ -177,7 +211,7 @@ export const HomeScreen = () => {
           )}
         </Card>
 
-        {/* 2 - today's goal */}
+        {/* 3 - today's goal */}
         <Card style={{gap: theme.spacing.md}}>
           <View style={styles.row}>
             <Text variant="bodyStrong">Today's goal</Text>
@@ -192,7 +226,7 @@ export const HomeScreen = () => {
           <ProgressBar value={goalProgress} gradient={goalReached ? 'teal' : 'brand'} />
         </Card>
 
-        {/* 3 - resume the next lesson */}
+        {/* 4 - resume the next lesson */}
         {!!nextLesson && (
           <Pressable
             onPress={() =>
@@ -214,7 +248,7 @@ export const HomeScreen = () => {
           </Pressable>
         )}
 
-        {/* 4 - words about to fade */}
+        {/* 5 - words about to fade */}
         {dueCount > 0 && (
           <Pressable
             onPress={() => navigation.navigate('VocabularyReview')}
@@ -231,7 +265,7 @@ export const HomeScreen = () => {
           </Pressable>
         )}
 
-        {/* 5 - other courses */}
+        {/* 6 - other courses */}
         {courseList.length > 1 && (
           <View style={{gap: theme.spacing.md}}>
             <Text variant="h2">More courses</Text>

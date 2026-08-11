@@ -1,7 +1,9 @@
 import {EmptyState} from '@/components/common';
 import type {AnyExercise} from '@/types';
 import {FillBlankExercise} from './FillBlankExercise';
+import {MatchPairsExercise} from './MatchPairsExercise';
 import {MultipleChoiceExercise} from './MultipleChoiceExercise';
+import {TranslateExercise} from './TranslateExercise';
 import {WordOrderExercise} from './WordOrderExercise';
 
 export interface ExerciseRendererProps {
@@ -29,6 +31,18 @@ export const ExerciseRenderer = ({exercise, onSubmit}: ExerciseRendererProps) =>
     case 'word_order':
       return (
         <WordOrderExercise prompt={exercise.prompt} payload={exercise.payload} onSubmit={onSubmit} />
+      );
+    case 'match_pairs':
+      return (
+        <MatchPairsExercise
+          prompt={exercise.prompt}
+          payload={exercise.payload}
+          onSubmit={onSubmit}
+        />
+      );
+    case 'translate':
+      return (
+        <TranslateExercise prompt={exercise.prompt} payload={exercise.payload} onSubmit={onSubmit} />
       );
     default:
       return (

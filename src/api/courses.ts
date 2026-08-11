@@ -1,5 +1,5 @@
 import {supabase} from '@/services/supabase';
-import type {CefrLevel, Course, Lesson, Unit} from '@/types';
+import type {CefrLevel, Course, Lesson, LessonState, Unit} from '@/types';
 
 export const coursesApi = {
   async list(level?: CefrLevel): Promise<Course[]> {
@@ -37,6 +37,15 @@ export const coursesApi = {
       .eq('unit_id', unitId)
       .eq('is_published', true)
       .order('order_index', {ascending: true});
+    if (error) {
+      throw error;
+    }
+    return data ?? [];
+  },
+
+  /** Per-lesson gating for a course (locked / available / in_progress / completed). */
+  async lessonStates(courseId: string): Promise<LessonState[]> {
+    const {data, error} = await supabase.rpc('lesson_states', {p_course_id: courseId});
     if (error) {
       throw error;
     }

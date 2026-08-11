@@ -147,6 +147,16 @@ export type CompleteLessonResult = {
   streak: UserStreak;
 }
 
+/** One row of the `lesson_states` RPC — a lesson's gating state for the user. */
+export type LessonState = {
+  lesson_id: string;
+  unit_id: string;
+  seq: number;
+  status: ProgressStatus;
+  score: number | null;
+  is_available: boolean;
+}
+
 export type DailyActivity = {
   id: string;
   user_id: string;
@@ -241,6 +251,10 @@ export type Database = {
       complete_lesson: {
         Args: {p_lesson_id: string; p_score?: number; p_minutes?: number};
         Returns: CompleteLessonResult;
+      };
+      lesson_states: {
+        Args: {p_course_id: string};
+        Returns: LessonState[];
       };
     };
     Enums: {

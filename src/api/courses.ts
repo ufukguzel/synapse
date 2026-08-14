@@ -1,7 +1,17 @@
 import {supabase} from '@/services/supabase';
-import type {CefrLevel, Course, Lesson, Unit} from '@/types';
+import type {CefrLevel, Course, CourseProgress, Lesson, Unit} from '@/types';
 
 export const coursesApi = {
+  /** Completion count per course for the current user, in one round trip. */
+  async progress(): Promise<CourseProgress[]> {
+    const {data, error} = await supabase.rpc('course_progress');
+    if (error) {
+      throw error;
+    }
+    return data ?? [];
+  },
+
+
   async list(level?: CefrLevel): Promise<Course[]> {
     let query = supabase
       .from('courses')

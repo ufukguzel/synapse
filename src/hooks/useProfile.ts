@@ -14,6 +14,16 @@ export const useProfile = () => {
   });
 };
 
+/** Aggregate stats (streak, XP, minutes, words) in one round trip. */
+export const useUserStats = () => {
+  const {user} = useAuth();
+  return useQuery({
+    queryKey: ['user-stats', user?.id],
+    queryFn: () => profilesApi.stats(),
+    enabled: !!user?.id,
+  });
+};
+
 export const useUpdateProfile = () => {
   const {user, refreshProfile} = useAuth();
   const queryClient = useQueryClient();

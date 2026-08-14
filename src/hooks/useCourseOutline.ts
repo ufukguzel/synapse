@@ -12,6 +12,21 @@ export const useLessonProgress = () => {
   });
 };
 
+/**
+ * Real lock/available/completed state per lesson, sequenced across the whole
+ * course. This is the authoritative gate - a lesson is only actually playable
+ * once the one before it is completed, which nothing enforced before this RPC
+ * existed.
+ */
+export const useLessonStates = (courseId: string | undefined) => {
+  const {user} = useAuth();
+  return useQuery({
+    queryKey: ['lesson-states', user?.id, courseId],
+    queryFn: () => lessonsApi.states(courseId!),
+    enabled: !!user?.id && !!courseId,
+  });
+};
+
 export interface OutlineLesson extends Lesson {
   unitTitle: string;
   isCompleted: boolean;

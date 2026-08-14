@@ -1,5 +1,5 @@
 import {supabase} from '@/services/supabase';
-import type {AnyExercise, Exercise, Lesson, UserLessonProgress} from '@/types';
+import type {AnyExercise, Exercise, Lesson, LessonCompletionResult, LessonState, UserLessonProgress} from '@/types';
 
 const toTypedExercise = (row: Exercise): AnyExercise =>
   ({
@@ -42,25 +42,34 @@ export const lessonsApi = {
     return data ?? [];
   },
 
-  async complete(params: {userId: string; lessonId: string; score: number}) {
-    const {data, error} = await supabase
-      .from('user_lesson_progress')
-      .upsert(
-        {
-          user_id: params.userId,
-          lesson_id: params.lessonId,
-          status: 'completed',
-          score: params.score,
-          completed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {onConflict: 'user_id,lesson_id'},
-      )
-      .select('*')
-      .single();
+  /**
+   * One atomic, server-authoritative call replacing what used to be three
+   * separate round trips (upsert progress + record_activity + enroll_vocabulary).
+   * XP comes from lessons.xp_reward, not the client, and a repeat cannot be
+   * farmed for XP - see the complete_lesson migration for the full contract.
+   */
+  async completeLesson(
+    lessonId: string,
+    score: number,
+    minutes: number,
+  ): Promise<LessonCompletionResult> {
+    const {data, error} = await supabase.rpc('complete_lesson', {
+      p_lesson_id: lessonId,
+      p_score: score,
+      p_minutes: minutes,
+    });
     if (error) {
       throw error;
     }
     return data;
+  },
+
+  /** Real lock/available/completed status per lesson, sequenced across the whole course. */
+  async states(courseId: string): Promise<LessonState[]> {
+    const {data, error} = await supabase.rpc('lesson_states', {p_course_id: courseId});
+    if (error) {
+      throw error;
+    }
+    return data ?? [];
   },
 };

@@ -11,7 +11,7 @@ import {
   Screen,
   Text,
 } from '@/components';
-import {useCompleteTask, useDailyPlan, useRegions} from '@/hooks';
+import {useDailyPlan, useRegions} from '@/hooks';
 import {useAuth, useTheme} from '@/providers';
 import {formatMinutes} from '@/utils';
 import type {DailyTask, RegionCode} from '@/types';
@@ -25,7 +25,6 @@ export const TasksScreen = () => {
   const {profile} = useAuth();
   const plan = useDailyPlan();
   const regions = useRegions();
-  const completeTask = useCompleteTask();
 
   const accentFor = (code: RegionCode) =>
     regions.data?.find(region => region.code === code)?.accent ?? theme.colors.primary;
@@ -38,11 +37,11 @@ export const TasksScreen = () => {
       return;
     }
     if (task.lesson_id) {
-      navigation.navigate('Lesson', {lessonId: task.lesson_id, title: task.title});
+      navigation.navigate('Lesson', {lessonId: task.lesson_id, title: task.title, taskId: task.id});
       return;
     }
     // A task with no lesson is the vocabulary review.
-    navigation.navigate('VocabularyReview');
+    navigation.navigate('VocabularyReview', {taskId: task.id});
   };
 
   if (plan.error) {
@@ -144,19 +143,6 @@ export const TasksScreen = () => {
               );
             })}
           </View>
-        )}
-
-        {/* Manual completion for the tasks a lesson cannot close on its own. */}
-        {plan.tasks.some(task => task.status === 'pending' && !task.lesson_id) && (
-          <Text variant="caption" color={theme.colors.textTertiary}>
-            Review tasks close themselves once every due word has been seen.
-          </Text>
-        )}
-
-        {completeTask.isError && (
-          <Text variant="caption" color={theme.colors.danger}>
-            Could not update the task. Please try again.
-          </Text>
         )}
       </View>
     </Screen>

@@ -1,12 +1,15 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {View} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import {useMutation} from '@tanstack/react-query';
 import {Button, Card, EmptyState, ErrorView, LoadingView, ProgressBar, Screen, Text} from '@/components';
 import {vocabularyApi} from '@/api';
-import {useDueVocabulary} from '@/hooks';
+import {useCompleteTask, useDueVocabulary, useRecordActivity} from '@/hooks';
 import {useTheme} from '@/providers';
 import {scheduleNextReview} from '@/utils';
+import type {RootStackParamList} from '@/navigation/types';
+
+type Route = RouteProp<RootStackParamList, 'VocabularyReview'>;
 
 const QUALITY_BUTTONS = [
   {label: 'Again', quality: 1, variant: 'danger' as const},
@@ -15,15 +18,47 @@ const QUALITY_BUTTONS = [
   {label: 'Easy', quality: 5, variant: 'ghost' as const},
 ];
 
+/** Modest XP per word - well under a lesson's, so review can't outpace lessons. */
+const XP_PER_WORD = 2;
+
 export const VocabularyReviewScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation();
+  const {params} = useRoute<Route>();
 
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
 
   const dueQuery = useDueVocabulary();
   const saveReview = useMutation({mutationFn: vocabularyApi.saveReview});
+  const recordActivity = useRecordActivity();
+  const completeTask = useCompleteTask();
+
+  const items = dueQuery.data ?? [];
+  const current = items[index];
+  const finished = items.length > 0 && index >= items.length;
+
+  // All hooks run unconditionally, before the loading/empty/finished branches
+  // below return early - a session-elapsed timer and a once-only guard.
+  const sessionStartRef = useRef(Date.now());
+  const recordedRef = useRef(false);
+
+  useEffect(() => {
+    if (!finished || recordedRef.current) {
+      return;
+    }
+    recordedRef.current = true;
+    // Nothing called record_activity for a review session before this, so
+    // reviewing words never moved the streak or the daily goal no matter how
+    // long it took.
+    const minutes = Math.max(1, Math.round((Date.now() - sessionStartRef.current) / 60_000));
+    recordActivity.mutate({minutes, xp: items.length * XP_PER_WORD, lessons: 0});
+    // Opened from the Tasks tab: close the task too, same as a lesson does.
+    if (params?.taskId) {
+      completeTask.mutate(params.taskId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished]);
 
   if (dueQuery.isLoading) {
     return <LoadingView />;
@@ -31,9 +66,6 @@ export const VocabularyReviewScreen = () => {
   if (dueQuery.isError) {
     return <ErrorView error={dueQuery.error} onRetry={dueQuery.refetch} />;
   }
-
-  const items = dueQuery.data ?? [];
-  const current = items[index];
 
   if (!items.length) {
     return (

@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import {
   EmptyState,
   ErrorView,
@@ -14,8 +14,8 @@ import {
 } from '@/components';
 import {lessonsApi} from '@/api';
 import {HEARTS_PER_SESSION} from '@/constants';
-import {useLessonSession, useRecordActivity} from '@/hooks';
-import {useAuth, useTheme} from '@/providers';
+import {useCompleteLesson, useCompleteTask, useLessonSession} from '@/hooks';
+import {useTheme} from '@/providers';
 import type {RootStackParamList} from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Lesson'>;
@@ -25,7 +25,6 @@ export const LessonScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation<Nav>();
   const {params} = useRoute<Route>();
-  const {user} = useAuth();
 
   const exercisesQuery = useQuery({
     queryKey: ['exercises', params.lessonId],
@@ -39,12 +38,8 @@ export const LessonScreen = () => {
     queryFn: () => lessonsApi.get(params.lessonId),
   });
 
-  const completeLesson = useMutation({
-    mutationFn: (score: number) =>
-      lessonsApi.complete({userId: user!.id, lessonId: params.lessonId, score}),
-  });
-
-  const recordActivity = useRecordActivity();
+  const completeLesson = useCompleteLesson();
+  const completeTask = useCompleteTask();
 
   useEffect(() => {
     // Running out of hearts ends the session too, otherwise the hearts counter is
@@ -52,23 +47,45 @@ export const LessonScreen = () => {
     if (!session.isFinished && !session.isFailed) {
       return;
     }
-    // A failed run is not a completed lesson, so don't record progress for it.
-    if (session.isFinished && !session.isFailed && user?.id) {
-      completeLesson.mutate(Math.round(session.accuracy * 100));
-      // Feeds the streak, the XP total and today's goal bar. Without this the
-      // gamification numbers stayed at zero no matter how much was studied.
-      recordActivity.mutate({
-        minutes: lessonQuery.data?.estimated_minutes ?? 0,
-        xp: session.xp,
-        lessons: 1,
+
+    const finish = async () => {
+      // Server-authoritative XP, not session.xp (correct-answers * a client
+      // constant): that number had nothing to do with lessons.xp_reward and
+      // stayed nonzero even on a repeat, which complete_lesson pays 0 XP for.
+      let xpAwarded = 0;
+      let isFirstCompletion = true;
+
+      if (session.isFinished && !session.isFailed && lessonQuery.data) {
+        try {
+          const result = await completeLesson.mutateAsync({
+            lessonId: params.lessonId,
+            kind: lessonQuery.data.kind,
+            score: Math.round(session.accuracy * 100),
+            minutes: lessonQuery.data.estimated_minutes,
+          });
+          xpAwarded = result.xp_awarded;
+          isFirstCompletion = result.is_first_completion;
+          // Opened from the Tasks tab: close the task too, or its progress bar
+          // never advances even though the lesson genuinely completed.
+          if (params.taskId) {
+            completeTask.mutate(params.taskId);
+          }
+        } catch (error) {
+          // Better to show 0 XP than to claim an amount that may not have saved.
+          console.warn('[Synapse] failed to record lesson completion', error);
+        }
+      }
+
+      navigation.replace('LessonResult', {
+        lessonId: params.lessonId,
+        xp: xpAwarded,
+        accuracy: session.accuracy,
+        failed: session.isFailed,
+        isFirstCompletion,
       });
-    }
-    navigation.replace('LessonResult', {
-      lessonId: params.lessonId,
-      xp: session.xp,
-      accuracy: session.accuracy,
-      failed: session.isFailed,
-    });
+    };
+
+    finish();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.isFinished, session.isFailed]);
 
@@ -94,13 +111,22 @@ export const LessonScreen = () => {
       <View style={{gap: theme.spacing.md, marginBottom: theme.spacing.xl}}>
         <View style={styles.topRow}>
           <ProgressBar value={session.progress} style={styles.flex} />
-          {/* Spent hearts stay visible as dimmed glyphs so the cost is legible. */}
-          <Text variant="bodyStrong">
-            {'❤️'.repeat(session.hearts)}
-            <Text variant="bodyStrong" color={theme.colors.textTertiary}>
-              {'🤍'.repeat(Math.max(0, HEARTS_PER_SESSION - session.hearts))}
-            </Text>
-          </Text>
+          {/* Pips, not emoji hearts: neural primitives, no game-show dressing. */}
+          <View style={styles.pips}>
+            {Array.from({length: HEARTS_PER_SESSION}, (_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.pip,
+                  {
+                    borderRadius: theme.radius.pill,
+                    backgroundColor:
+                      index < session.hearts ? theme.colors.danger : theme.colors.surfaceAlt,
+                  },
+                ]}
+              />
+            ))}
+          </View>
         </View>
         <Text variant="caption" color={theme.colors.textTertiary}>
           Question {Math.min(session.index + 1, session.exercises.length)} of{' '}
@@ -124,4 +150,6 @@ export const LessonScreen = () => {
 const styles = StyleSheet.create({
   flex: {flex: 1},
   topRow: {flexDirection: 'row', alignItems: 'center', gap: 12},
+  pips: {flexDirection: 'row', gap: 5},
+  pip: {width: 9, height: 9},
 });

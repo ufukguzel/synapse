@@ -15,19 +15,26 @@ export const LessonResultScreen = () => {
 
   const percent = Math.round(params.accuracy * 100);
   const failed = params.failed === true;
+  // complete_lesson only pays XP once, so a repeat run legitimately shows +0 -
+  // call that out on purpose instead of letting it read as a broken reward.
+  const isRepeat = !failed && params.isFirstCompletion === false;
 
   /**
    * Copy follows the brand voice: a calm coach describing what happened to the
    * learner's memory, not a scoreboard shouting at them.
    */
-  const eyebrow = failed ? 'Session ended' : 'Pathway strengthened';
+  const eyebrow = failed ? 'Session ended' : isRepeat ? 'Practice round' : 'Pathway strengthened';
   const heading = failed
     ? 'Out of hearts'
+    : isRepeat
+    ? 'Already mastered'
     : percent >= 80
     ? 'That one stuck'
     : 'Pathway is forming';
   const subline = failed
     ? 'Nothing lost — the lesson stays open. Come back when you are ready.'
+    : isRepeat
+    ? 'XP for this lesson was already earned — great for practice, no extra XP this time.'
     : percent >= 80
     ? 'Nice — that pathway just got stronger. One more and it sticks.'
     : 'Some of it landed. A second pass will do the rest.';

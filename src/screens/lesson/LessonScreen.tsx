@@ -15,7 +15,7 @@ import {
 import {lessonsApi} from '@/api';
 import {HEARTS_PER_SESSION} from '@/constants';
 import {useCompleteLesson, useCompleteTask, useLessonSession} from '@/hooks';
-import {useTheme} from '@/providers';
+import {useT, useTheme} from '@/providers';
 import type {RootStackParamList} from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Lesson'>;
@@ -23,6 +23,7 @@ type Route = RouteProp<RootStackParamList, 'Lesson'>;
 
 export const LessonScreen = () => {
   const theme = useTheme();
+  const {t} = useT();
   const navigation = useNavigation<Nav>();
   const {params} = useRoute<Route>();
 
@@ -98,9 +99,9 @@ export const LessonScreen = () => {
   if (!session.exercises.length) {
     return (
       <EmptyState
-        title="No exercises"
-        description="This lesson has no content yet."
-        actionLabel="Go back"
+        title={t('lesson.noExercisesTitle')}
+        description={t('lesson.noExercisesDesc')}
+        actionLabel={t('lesson.goBack')}
         onAction={navigation.goBack}
       />
     );
@@ -129,8 +130,10 @@ export const LessonScreen = () => {
           </View>
         </View>
         <Text variant="caption" color={theme.colors.textTertiary}>
-          Question {Math.min(session.index + 1, session.exercises.length)} of{' '}
-          {session.exercises.length}
+          {t('lesson.question', {
+            current: Math.min(session.index + 1, session.exercises.length),
+            total: session.exercises.length,
+          })}
         </Text>
       </View>
 

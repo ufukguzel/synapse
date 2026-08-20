@@ -5,11 +5,10 @@ import {Badge, Button, Card, Screen, Text} from '@/components';
 import {useRecentActivity, useUserStats} from '@/hooks';
 import {useAuth, useT, useTheme} from '@/providers';
 import {formatXp} from '@/utils';
+import type {TranslationKey} from '@/i18n';
 import type {RootStackParamList} from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 /** Last 7 dates, oldest first, as YYYY-MM-DD. */
 const lastSevenDays = () => {
@@ -104,7 +103,7 @@ export const ProfileScreen = () => {
                     </Text>
                   </View>
                   <Text variant="caption" color={theme.colors.textTertiary}>
-                    {DAY_LABELS[day.weekday]}
+                    {t(`day.${day.weekday}` as TranslationKey)}
                   </Text>
                 </View>
               );

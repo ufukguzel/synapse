@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {View} from 'react-native';
 import {Button, Input, Screen, SynapseMark, Text} from '@/components';
-import {useAuth, useTheme} from '@/providers';
+import {useAuth, useT, useTheme} from '@/providers';
 import {isSupabaseConfigured} from '@/services/supabase';
 import {checkPassword, isValidEmail} from '@/utils';
 
@@ -10,6 +10,7 @@ type FormError = {field: 'email' | 'password' | 'form'; message: string};
 
 export const SignUpScreen = () => {
   const theme = useTheme();
+  const {t} = useT();
   const {signUp} = useAuth();
 
   const [displayName, setDisplayName] = useState('');
@@ -21,7 +22,7 @@ export const SignUpScreen = () => {
   const onSubmit = async () => {
     setError(null);
     if (!isValidEmail(email)) {
-      setError({field: 'email', message: 'Enter a valid email address.'});
+      setError({field: 'email', message: t('auth.invalidEmail')});
       return;
     }
     const check = checkPassword(password);
@@ -30,10 +31,7 @@ export const SignUpScreen = () => {
       return;
     }
     if (!isSupabaseConfigured) {
-      setError({
-        field: 'form',
-        message: 'Backend is not configured yet, so accounts cannot be created.',
-      });
+      setError({field: 'form', message: t('auth.backendSignUp')});
       return;
     }
     setLoading(true);
@@ -42,7 +40,7 @@ export const SignUpScreen = () => {
     } catch (e) {
       setError({
         field: 'form',
-        message: e instanceof Error ? e.message : 'Could not create the account.',
+        message: e instanceof Error ? e.message : t('auth.couldNotCreate'),
       });
     } finally {
       setLoading(false);
@@ -57,29 +55,34 @@ export const SignUpScreen = () => {
       <View style={{gap: theme.spacing.lg, paddingTop: theme.spacing.xl}}>
         <View style={{gap: theme.spacing.sm, marginBottom: theme.spacing.sm}}>
           <SynapseMark size={48} />
-          <Text variant="display">Create your account</Text>
+          <Text variant="display">{t('signup.title')}</Text>
           <Text variant="bodyLg" color={theme.colors.textSecondary}>
-            Five minutes a day is all it takes to start.
+            {t('signup.subtitle')}
           </Text>
         </View>
-        <Input label="Name" value={displayName} onChangeText={setDisplayName} placeholder="Your name" />
         <Input
-          label="Email"
+          label={t('signup.name')}
+          value={displayName}
+          onChangeText={setDisplayName}
+          placeholder={t('signup.namePlaceholder')}
+        />
+        <Input
+          label={t('auth.email')}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
-          placeholder="you@example.com"
+          placeholder={t('auth.emailPlaceholder')}
           error={errorFor('email')}
         />
         <Input
-          label="Password"
+          label={t('auth.password')}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
-          placeholder="At least 8 characters"
+          placeholder={t('signup.passwordPlaceholder')}
           error={errorFor('password')}
-          hint="8+ characters, with a letter and a number."
+          hint={t('signup.passwordHint')}
         />
         {!!errorFor('form') && (
           <View
@@ -94,7 +97,7 @@ export const SignUpScreen = () => {
           </View>
         )}
         <Button
-          label="Create account"
+          label={t('signup.create')}
           size="lg"
           loading={loading}
           onPress={onSubmit}

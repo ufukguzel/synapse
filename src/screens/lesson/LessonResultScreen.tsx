@@ -2,7 +2,7 @@ import {View} from 'react-native';
 import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {Button, Card, Screen, SynapseMark, Text} from '@/components';
-import {useTheme} from '@/providers';
+import {useT, useTheme} from '@/providers';
 import type {RootStackParamList} from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'LessonResult'>;
@@ -10,6 +10,7 @@ type Route = RouteProp<RootStackParamList, 'LessonResult'>;
 
 export const LessonResultScreen = () => {
   const theme = useTheme();
+  const {t} = useT();
   const navigation = useNavigation<Nav>();
   const {params} = useRoute<Route>();
 
@@ -23,21 +24,25 @@ export const LessonResultScreen = () => {
    * Copy follows the brand voice: a calm coach describing what happened to the
    * learner's memory, not a scoreboard shouting at them.
    */
-  const eyebrow = failed ? 'Session ended' : isRepeat ? 'Practice round' : 'Pathway strengthened';
+  const eyebrow = failed
+    ? t('result.sessionEnded')
+    : isRepeat
+    ? t('result.practiceRound')
+    : t('result.pathwayStrengthened');
   const heading = failed
-    ? 'Out of hearts'
+    ? t('result.outOfHearts')
     : isRepeat
-    ? 'Already mastered'
+    ? t('result.alreadyMastered')
     : percent >= 80
-    ? 'That one stuck'
-    : 'Pathway is forming';
+    ? t('result.thatStuck')
+    : t('result.forming');
   const subline = failed
-    ? 'Nothing lost — the lesson stays open. Come back when you are ready.'
+    ? t('result.failedSub')
     : isRepeat
-    ? 'XP for this lesson was already earned — great for practice, no extra XP this time.'
+    ? t('result.repeatSub')
     : percent >= 80
-    ? 'Nice — that pathway just got stronger. One more and it sticks.'
-    : 'Some of it landed. A second pass will do the rest.';
+    ? t('result.goodSub')
+    : t('result.formingSub');
 
   return (
     <Screen>
@@ -66,13 +71,13 @@ export const LessonResultScreen = () => {
             <Text
               variant="caption"
               color={failed ? theme.colors.textSecondary : 'rgba(255, 255, 255, 0.85)'}>
-              XP earned
+              {t('result.xpEarned')}
             </Text>
           </Card>
           <Card style={{flex: 1, alignItems: 'center', gap: theme.spacing.xxs}}>
             <Text variant="display">{percent}%</Text>
             <Text variant="caption" color={theme.colors.textSecondary}>
-              Accuracy
+              {t('result.accuracy')}
             </Text>
           </Card>
         </View>
@@ -80,7 +85,7 @@ export const LessonResultScreen = () => {
 
       <View style={{paddingBottom: theme.spacing.lg}}>
         <Button
-          label={failed ? 'Back to lessons' : 'Done'}
+          label={failed ? t('result.backToLessons') : t('result.done')}
           size="lg"
           variant={failed ? 'secondary' : 'primary'}
           onPress={() => navigation.navigate('Main', {screen: 'HomeTab'})}

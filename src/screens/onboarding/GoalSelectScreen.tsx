@@ -5,23 +5,15 @@ import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {Button, OptionRow, Screen, StepHeader} from '@/components';
 import {DAILY_GOAL_OPTIONS} from '@/constants';
 import {useUpdateProfile} from '@/hooks';
-import {useTheme} from '@/providers';
-import {formatMinutes} from '@/utils';
+import {useT, useTheme} from '@/providers';
+import type {TranslationKey} from '@/i18n';
 import type {OnboardingStackParamList} from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<OnboardingStackParamList, 'GoalSelect'>;
 
-/** Keyed by the minute values in DAILY_GOAL_OPTIONS. */
-const GOAL_HINTS: Record<number, string> = {
-  5: 'One short session - easiest to keep up.',
-  10: 'The sweet spot for most learners.',
-  15: 'Steady progress without a big time commitment.',
-  20: 'Two sessions a day, or one longer one.',
-  30: 'Serious pace. Best if you already have a routine.',
-};
-
 export const GoalSelectScreen = () => {
   const theme = useTheme();
+  const {t, formatMinutes} = useT();
   const navigation = useNavigation<Nav>();
   const updateProfile = useUpdateProfile();
   const [minutes, setMinutes] = useState<number>(10);
@@ -37,16 +29,16 @@ export const GoalSelectScreen = () => {
         <StepHeader
           step={3}
           total={4}
-          title="Daily goal"
-          subtitle="Consistency beats intensity. Start small."
+          title={t('onb.goal.title')}
+          subtitle={t('onb.goal.subtitle')}
         />
 
         <View style={{gap: theme.spacing.md}}>
           {DAILY_GOAL_OPTIONS.map(option => (
             <OptionRow
               key={option}
-              title={`${formatMinutes(option)} a day`}
-              description={GOAL_HINTS[option]}
+              title={t('settings.goalPerDay', {minutes: formatMinutes(option)})}
+              description={t(`onb.goal.hint${option}` as TranslationKey)}
               selected={minutes === option}
               onPress={() => setMinutes(option)}
             />
@@ -54,7 +46,7 @@ export const GoalSelectScreen = () => {
         </View>
 
         <Button
-          label="Continue"
+          label={t('onb.continue')}
           size="lg"
           loading={updateProfile.isPending}
           onPress={onContinue}

@@ -25,8 +25,9 @@ import {
   useRegions,
   useUserStats,
 } from '@/hooks';
-import {useAuth, useTheme} from '@/providers';
-import {formatMinutes, formatXp, pluralize, REGION_FOR_LESSON_KIND} from '@/utils';
+import {useAuth, useT, useTheme} from '@/providers';
+import {formatXp, REGION_FOR_LESSON_KIND} from '@/utils';
+import type {TranslationKey} from '@/i18n';
 import type {RegionCode} from '@/types';
 import type {RootStackParamList} from '@/navigation/types';
 
@@ -34,17 +35,18 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const HERO_HEIGHT = 190;
 
-/** Time-of-day greeting, matching the handoff's "Good evening, Eda". */
-const greeting = () => {
+/** Time-of-day greeting key, matching the handoff's "Good evening, Eda". */
+const greetingKey = (): TranslationKey => {
   const hour = new Date().getHours();
   if (hour < 12) {
-    return 'Good morning';
+    return 'home.greetingMorning';
   }
-  return hour < 18 ? 'Good afternoon' : 'Good evening';
+  return hour < 18 ? 'home.greetingAfternoon' : 'home.greetingEvening';
 };
 
 export const HomeScreen = () => {
   const theme = useTheme();
+  const {t, tc, formatMinutes} = useT();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const {profile} = useAuth();
@@ -132,12 +134,22 @@ export const HomeScreen = () => {
       </View>
 
       <Text variant="h1" color={theme.brand.mist}>
-        {firstName ? `${greeting()}, ${firstName}` : greeting()}
+        {firstName
+          ? t('home.greetingNamed', {greeting: t(greetingKey()), name: firstName})
+          : t(greetingKey())}
       </Text>
 
       <View style={[styles.chips, {gap: theme.spacing.sm}]}>
-        <StatChip value={`${stats.data?.current_streak ?? 0}-day`} label="streak" onGradient />
-        <StatChip value={formatXp(stats.data?.total_xp ?? 0)} label="neural strength" onGradient />
+        <StatChip
+          value={t('home.streakValue', {count: stats.data?.current_streak ?? 0})}
+          label={t('home.streak')}
+          onGradient
+        />
+        <StatChip
+          value={formatXp(stats.data?.total_xp ?? 0)}
+          label={t('home.neuralStrength')}
+          onGradient
+        />
       </View>
     </GradientSurface>
   );
@@ -165,9 +177,9 @@ export const HomeScreen = () => {
         {/* 1 - the signature brain map */}
         <Card style={{gap: theme.spacing.base, alignItems: 'center'}}>
           <View style={[styles.row, styles.fullWidth]}>
-            <Text variant="bodyStrong">Your brain today</Text>
+            <Text variant="bodyStrong">{t('home.brainToday')}</Text>
             <Text variant="caption" color={theme.colors.textTertiary}>
-              {regionList.length ? 'Tap a region' : ''}
+              {regionList.length ? t('home.tapRegion') : ''}
             </Text>
           </View>
 
@@ -188,13 +200,13 @@ export const HomeScreen = () => {
             <View style={[styles.row, styles.fullWidth]}>
               <View style={{gap: theme.spacing.xxs}}>
                 <Text variant="overline" color={theme.colors.textTertiary}>
-                  Strongest
+                  {t('home.strongest')}
                 </Text>
                 <Text variant="bodyStrong">{strongest.title}</Text>
               </View>
               <View style={{gap: theme.spacing.xxs, alignItems: 'flex-end'}}>
                 <Text variant="overline" color={theme.colors.textTertiary}>
-                  Focus next
+                  {t('home.focusNext')}
                 </Text>
                 <Text variant="bodyStrong" color={theme.colors.accent}>
                   {weakest.title}
@@ -207,13 +219,16 @@ export const HomeScreen = () => {
         {/* 2 - today's goal */}
         <Card style={{gap: theme.spacing.md}}>
           <View style={styles.row}>
-            <Text variant="bodyStrong">Today's goal</Text>
+            <Text variant="bodyStrong">{t('home.todaysGoal')}</Text>
             <Text
               variant="caption"
               color={goalReached ? theme.colors.success : theme.colors.textSecondary}>
               {goalReached
-                ? "Today's goal met"
-                : `${formatMinutes(minutesToday)} / ${formatMinutes(dailyGoal)}`}
+                ? t('home.goalMet')
+                : t('home.goalProgress', {
+                    done: formatMinutes(minutesToday),
+                    goal: formatMinutes(dailyGoal),
+                  })}
             </Text>
           </View>
           <ProgressBar value={goalProgress} gradient={goalReached ? 'teal' : 'brand'} />
@@ -228,14 +243,17 @@ export const HomeScreen = () => {
             style={({pressed}) => ({opacity: pressed ? 0.9 : 1})}>
             <Card gradient="brand" style={{gap: theme.spacing.sm}}>
               <Text variant="overline" color="rgba(236, 234, 254, 0.8)">
-                Continue learning
+                {t('home.continueLearning')}
               </Text>
               <Text variant="h3" color={theme.brand.mist}>
                 {nextLesson.title}
               </Text>
               <Text variant="caption" color="rgba(236, 234, 254, 0.85)">
-                {nextLesson.unitTitle} · {nextLesson.estimated_minutes} min · +
-                {nextLesson.xp_reward} XP
+                {t('home.lessonMeta', {
+                  unit: nextLesson.unitTitle,
+                  minutes: nextLesson.estimated_minutes,
+                  xp: nextLesson.xp_reward,
+                })}
               </Text>
             </Card>
           </Pressable>
@@ -248,11 +266,11 @@ export const HomeScreen = () => {
             style={({pressed}) => ({opacity: pressed ? 0.9 : 1})}>
             <Card style={{gap: theme.spacing.sm}}>
               <View style={styles.row}>
-                <Text variant="bodyStrong">Memory check</Text>
-                <Badge label={`${dueCount} due`} tone="warning" solid />
+                <Text variant="bodyStrong">{t('home.memoryCheck')}</Text>
+                <Badge label={t('home.dueBadge', {count: dueCount})} tone="warning" solid />
               </View>
               <Text variant="body" color={theme.colors.textSecondary}>
-                {pluralize(dueCount, 'word')} about to fade. A quick pass keeps them.
+                {tc('home.wordsFading', dueCount)}
               </Text>
             </Card>
           </Pressable>
@@ -261,7 +279,7 @@ export const HomeScreen = () => {
         {/* 5 - other courses */}
         {courseList.length > 1 && (
           <View style={{gap: theme.spacing.md}}>
-            <Text variant="h2">More courses</Text>
+            <Text variant="h2">{t('home.moreCourses')}</Text>
             {courseList.slice(1).map(course => {
               const progress = progressFor(course.id);
               return (
@@ -275,7 +293,9 @@ export const HomeScreen = () => {
                     <View style={styles.row}>
                       <Badge label={course.level} tone="primary" />
                       <Text variant="caption" color={theme.colors.textTertiary}>
-                        {progress ? `${progress.completed_lessons}/${progress.total_lessons}` : 'Start →'}
+                        {progress
+                          ? `${progress.completed_lessons}/${progress.total_lessons}`
+                          : t('home.start')}
                       </Text>
                     </View>
                     <Text variant="h3">{course.title}</Text>

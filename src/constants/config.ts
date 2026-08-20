@@ -12,4 +12,6 @@ export const STORAGE_KEYS = {
   authSession: 'synapse.auth.session',
   onboardingSeen: 'synapse.onboarding.seen',
   themeScheme: 'synapse.theme.scheme',
+  // Cached so the interface opens in the right language before the profile loads.
+  uiLanguage: 'synapse.ui.language',
 } as const;

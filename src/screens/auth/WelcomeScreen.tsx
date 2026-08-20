@@ -3,21 +3,23 @@ import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Button, GradientSurface, SynapseMark, Text} from '@/components';
-import {useTheme} from '@/providers';
+import {useT, useTheme} from '@/providers';
+import type {TranslationKey} from '@/i18n';
 import type {AuthStackParamList} from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Welcome'>;
 
 const HERO_RATIO = 0.46;
 
-const SELLING_POINTS = [
-  'Five focused minutes a day',
-  'Spaced repetition timed to how memory fades',
-  'A steady rhythm, so the habit holds',
+const SELLING_POINTS: TranslationKey[] = [
+  'welcome.point1',
+  'welcome.point2',
+  'welcome.point3',
 ];
 
 export const WelcomeScreen = () => {
   const theme = useTheme();
+  const {t} = useT();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const heroHeight = Dimensions.get('window').height * HERO_RATIO;
@@ -36,7 +38,7 @@ export const WelcomeScreen = () => {
         </Text>
         {/* The brand's own tagline, from the logo lockup. */}
         <Text variant="bodyLg" color="rgba(236, 234, 254, 0.85)" center>
-          Train your brain to think in English
+          {t('welcome.tagline')}
         </Text>
       </GradientSurface>
 
@@ -60,16 +62,20 @@ export const WelcomeScreen = () => {
                 ]}
               />
               <Text variant="bodyLg" color={theme.colors.textSecondary} style={styles.flex}>
-                {point}
+                {t(point)}
               </Text>
             </View>
           ))}
         </View>
 
         <View style={{gap: theme.spacing.sm}}>
-          <Button label="Get started" size="lg" onPress={() => navigation.navigate('SignUp')} />
           <Button
-            label="I already have an account"
+            label={t('welcome.getStarted')}
+            size="lg"
+            onPress={() => navigation.navigate('SignUp')}
+          />
+          <Button
+            label={t('welcome.haveAccount')}
             variant="ghost"
             onPress={() => navigation.navigate('SignIn')}
           />

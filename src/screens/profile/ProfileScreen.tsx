@@ -3,8 +3,8 @@ import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {Badge, Button, Card, Screen, Text} from '@/components';
 import {useRecentActivity, useUserStats} from '@/hooks';
-import {useAuth, useTheme} from '@/providers';
-import {formatMinutes, formatXp, pluralize} from '@/utils';
+import {useAuth, useT, useTheme} from '@/providers';
+import {formatXp} from '@/utils';
 import type {RootStackParamList} from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -23,6 +23,7 @@ const lastSevenDays = () => {
 
 export const ProfileScreen = () => {
   const theme = useTheme();
+  const {t, tc, formatMinutes} = useT();
   const navigation = useNavigation<Nav>();
   const {profile, user} = useAuth();
   // One round trip for the headline numbers, instead of a streak query plus
@@ -51,9 +52,9 @@ export const ProfileScreen = () => {
             </Text>
           </View>
           <View style={{flex: 1, gap: theme.spacing.xs}}>
-            <Text variant="h2">{profile?.display_name ?? user?.email ?? 'Profile'}</Text>
+            <Text variant="h2">{profile?.display_name ?? user?.email ?? t('profile.fallback')}</Text>
             {!!profile?.current_level && (
-              <Badge label={`Level ${profile.current_level}`} tone="primary" solid />
+              <Badge label={t('profile.level', {level: profile.current_level})} tone="primary" solid />
             )}
           </View>
         </View>
@@ -66,20 +67,20 @@ export const ProfileScreen = () => {
               {stats.data?.current_streak ?? 0}
             </Text>
             <Text variant="caption" color="rgba(255, 255, 255, 0.85)">
-              day streak
+              {t('profile.dayStreak')}
             </Text>
           </Card>
           <Card style={[styles.metric, {gap: theme.spacing.xxs}]}>
             <Text variant="display">{formatXp(stats.data?.total_xp ?? 0)}</Text>
             <Text variant="caption" color={theme.colors.textSecondary}>
-              neural strength
+              {t('profile.neuralStrength')}
             </Text>
           </Card>
         </View>
 
         <Card style={{gap: theme.spacing.base}}>
           <View style={styles.row}>
-            <Text variant="bodyStrong">This week</Text>
+            <Text variant="bodyStrong">{t('profile.thisWeek')}</Text>
             <Text variant="caption" color={theme.colors.textSecondary}>
               {formatMinutes(stats.data?.minutes_week ?? 0)}
             </Text>
@@ -112,21 +113,24 @@ export const ProfileScreen = () => {
         </Card>
 
         <Card style={{gap: theme.spacing.md}}>
-          <Row label="Longest streak" value={`${stats.data?.longest_streak ?? 0} days`} />
           <Row
-            label="Lessons completed"
+            label={t('profile.longestStreak')}
+            value={tc('profile.longestStreakValue', stats.data?.longest_streak ?? 0)}
+          />
+          <Row
+            label={t('profile.lessonsCompleted')}
             value={String(stats.data?.lessons_completed ?? 0)}
           />
-          <Row label="Words learned" value={pluralize(stats.data?.words_learned ?? 0, 'word')} />
+          <Row label={t('profile.wordsLearned')} value={String(stats.data?.words_learned ?? 0)} />
           {!!stats.data?.words_due && (
-            <Row label="Words due for review" value={String(stats.data.words_due)} />
+            <Row label={t('profile.wordsDue')} value={String(stats.data.words_due)} />
           )}
-          <Row label="Daily goal" value={formatMinutes(profile?.daily_goal_minutes ?? 10)} />
-          <Row label="Target level" value={profile?.target_level ?? '—'} />
+          <Row label={t('profile.dailyGoal')} value={formatMinutes(profile?.daily_goal_minutes ?? 10)} />
+          <Row label={t('profile.targetLevel')} value={profile?.target_level ?? '—'} />
         </Card>
 
         <Button
-          label="Settings"
+          label={t('profile.settings')}
           variant="secondary"
           onPress={() => navigation.navigate('Settings')}
         />

@@ -12,8 +12,7 @@ import {
   Text,
 } from '@/components';
 import {useDailyPlan, useRegions} from '@/hooks';
-import {useAuth, useTheme} from '@/providers';
-import {formatMinutes} from '@/utils';
+import {useAuth, useT, useTheme} from '@/providers';
 import type {DailyTask, RegionCode} from '@/types';
 import type {RootStackParamList} from '@/navigation/types';
 
@@ -21,6 +20,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export const TasksScreen = () => {
   const theme = useTheme();
+  const {t, formatMinutes} = useT();
   const navigation = useNavigation<Nav>();
   const {profile} = useAuth();
   const plan = useDailyPlan();
@@ -49,7 +49,7 @@ export const TasksScreen = () => {
   }
 
   if (plan.isLoading && plan.totalCount === 0) {
-    return <LoadingView message="Building today's plan…" />;
+    return <LoadingView message={t('tasks.building')} />;
   }
 
   const goal = profile?.daily_goal_minutes ?? 10;
@@ -60,13 +60,11 @@ export const TasksScreen = () => {
     <Screen scroll contentContainerStyle={{padding: theme.spacing.base}}>
       <View style={{gap: theme.spacing.lg}}>
         <View style={{gap: theme.spacing.sm}}>
-          <Text variant="display">Today</Text>
+          <Text variant="display">{t('tasks.today')}</Text>
           <Text variant="bodyLg" color={theme.colors.textSecondary}>
             {allDone
-              ? 'Every pathway on the list is stronger than it was this morning.'
-              : `Balanced across regions · about ${formatMinutes(
-                  plan.remainingMinutes || goal,
-                )} left`}
+              ? t('tasks.allDone')
+              : t('tasks.balanced', {minutes: formatMinutes(plan.remainingMinutes || goal)})}
           </Text>
         </View>
 
@@ -74,10 +72,10 @@ export const TasksScreen = () => {
           <Card style={{gap: theme.spacing.md}}>
             <View style={styles.row}>
               <Text variant="bodyStrong">
-                {plan.completedCount} / {plan.totalCount} done
+                {t('tasks.done', {completed: plan.completedCount, total: plan.totalCount})}
               </Text>
               <Text variant="caption" color={theme.colors.textSecondary}>
-                {formatMinutes(goal)} goal
+                {t('tasks.goalSuffix', {minutes: formatMinutes(goal)})}
               </Text>
             </View>
             <ProgressBar value={progress} gradient={allDone ? 'teal' : 'brand'} />
@@ -85,10 +83,7 @@ export const TasksScreen = () => {
         )}
 
         {plan.totalCount === 0 ? (
-          <EmptyState
-            title="Nothing to train yet"
-            description="There are no lessons left at your level and no words are due. New content will show up here."
-          />
+          <EmptyState title={t('tasks.nothingTitle')} description={t('tasks.nothingDesc')} />
         ) : (
           <View style={{gap: theme.spacing.md}}>
             {plan.tasks.map(task => {
@@ -119,7 +114,7 @@ export const TasksScreen = () => {
                         </Text>
                       </View>
                       {done ? (
-                        <Badge label="Done" tone="success" />
+                        <Badge label={t('tasks.doneBadge')} tone="success" />
                       ) : (
                         <Text variant="caption" color={theme.colors.textTertiary}>
                           ~{formatMinutes(task.estimated_minutes)}
@@ -135,7 +130,7 @@ export const TasksScreen = () => {
 
                     {!done && (
                       <Text variant="caption" color={theme.colors.textSecondary}>
-                        Strengthens {titleFor(task.region_code)}
+                        {t('tasks.strengthens', {region: titleFor(task.region_code)})}
                       </Text>
                     )}
                   </Card>

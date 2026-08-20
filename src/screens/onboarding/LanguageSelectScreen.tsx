@@ -10,7 +10,7 @@ import {
   NATIVE_LANGUAGES,
 } from '@/constants';
 import {useUpdateProfile} from '@/hooks';
-import {useAuth, useTheme} from '@/providers';
+import {useAuth, useT, useTheme} from '@/providers';
 import type {OnboardingStackParamList} from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<OnboardingStackParamList, 'LanguageSelect'>;
@@ -20,6 +20,7 @@ const isAvailable = (code: string) =>
 
 export const LanguageSelectScreen = () => {
   const theme = useTheme();
+  const {t} = useT();
   const navigation = useNavigation<Nav>();
   const {profile} = useAuth();
   const updateProfile = useUpdateProfile();
@@ -40,19 +41,19 @@ export const LanguageSelectScreen = () => {
         <StepHeader
           step={1}
           total={4}
-          title="Which language?"
-          subtitle="Pick what you want to learn, and the language we should explain things in."
+          title={t('onb.lang.title')}
+          subtitle={t('onb.lang.subtitle')}
         />
 
         <View style={{gap: theme.spacing.md}}>
           <Text variant="overline" color={theme.colors.textTertiary}>
-            I want to learn
+            {t('onb.lang.wantToLearn')}
           </Text>
           {LEARNING_LANGUAGES.map(option => (
             <OptionRow
               key={option.code}
               title={option.nativeName}
-              description={isAvailable(option.code) ? option.englishName : 'Content coming soon'}
+              description={isAvailable(option.code) ? option.englishName : t('onb.lang.comingSoon')}
               selected={learning === option.code}
               onPress={() => isAvailable(option.code) && setLearning(option.code)}
               leading={
@@ -66,7 +67,7 @@ export const LanguageSelectScreen = () => {
 
         <View style={{gap: theme.spacing.md}}>
           <Text variant="overline" color={theme.colors.textTertiary}>
-            My language
+            {t('onb.lang.myLanguage')}
           </Text>
           {NATIVE_LANGUAGES.map(option => (
             <OptionRow
@@ -80,10 +81,10 @@ export const LanguageSelectScreen = () => {
           ))}
         </View>
 
-        {!isAvailable(learning) && <Badge label="Not available yet" tone="warning" />}
+        {!isAvailable(learning) && <Badge label={t('onb.lang.notAvailable')} tone="warning" />}
 
         <Button
-          label="Continue"
+          label={t('onb.continue')}
           size="lg"
           disabled={!isAvailable(learning)}
           loading={updateProfile.isPending}

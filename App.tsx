@@ -7,7 +7,7 @@ import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {ErrorBoundary} from '@/components';
 import {RootNavigator} from '@/navigation';
-import {AuthProvider, QueryProvider, ThemeProvider, useTheme} from '@/providers';
+import {AuthProvider, LocaleProvider, QueryProvider, ThemeProvider, useTheme} from '@/providers';
 
 /**
  * The bar style has to follow the *app* theme, not the device one: the brand
@@ -27,8 +27,10 @@ const App = () => (
         <ThemeProvider>
           <QueryProvider>
             <AuthProvider>
-              <ThemedStatusBar />
-              <RootNavigator />
+              <LocaleProvider>
+                <ThemedStatusBar />
+                <RootNavigator />
+              </LocaleProvider>
             </AuthProvider>
           </QueryProvider>
         </ThemeProvider>

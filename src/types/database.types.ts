@@ -191,6 +191,53 @@ export type DailyTask = {
   created_at: string;
 };
 
+/** Which words a lesson teaches; complete_lesson() enrols them into the SRS queue. */
+export type LessonVocabulary = {
+  lesson_id: string;
+  vocabulary_id: string;
+  order_index: number;
+};
+
+/** Returned by the complete_lesson RPC. */
+export type LessonCompletionResult = {
+  is_first_completion: boolean;
+  /** Server-authoritative: comes from lessons.xp_reward, never the client. */
+  xp_awarded: number;
+  enrolled_count: number;
+  streak: UserStreak;
+};
+
+/** One row per lesson from the lesson_states RPC, sequenced across the course. */
+export type LessonState = {
+  lesson_id: string;
+  unit_id: string;
+  seq: number;
+  status: ProgressStatus;
+  score: number | null;
+  is_available: boolean;
+};
+
+/** Aggregate profile stats from the user_stats RPC - one round-trip. */
+export type UserStats = {
+  current_streak: number;
+  longest_streak: number;
+  total_xp: number;
+  minutes_today: number;
+  minutes_week: number;
+  lessons_completed: number;
+  words_learned: number;
+  words_due: number;
+  words_favorite: number;
+  daily_goal_minutes: number;
+  goal_met_today: boolean;
+};
+
+export type CourseProgress = {
+  course_id: string;
+  total_lessons: number;
+  completed_lessons: number;
+};
+
 type TableDef<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
   Insert: Insert;
@@ -215,6 +262,7 @@ export type Database = {
       user_region_strength: TableDef<UserRegionStrength>;
       learning_goals: TableDef<LearningGoal>;
       daily_tasks: TableDef<DailyTask>;
+      lesson_vocabulary: TableDef<LessonVocabulary>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -229,6 +277,22 @@ export type Database = {
       strengthen_region: {
         Args: {p_region_code: string; p_amount?: number};
         Returns: UserRegionStrength;
+      };
+      complete_lesson: {
+        Args: {p_lesson_id: string; p_score?: number; p_minutes?: number};
+        Returns: LessonCompletionResult;
+      };
+      lesson_states: {
+        Args: {p_course_id: string};
+        Returns: LessonState[];
+      };
+      user_stats: {
+        Args: Record<string, never>;
+        Returns: UserStats;
+      };
+      course_progress: {
+        Args: Record<string, never>;
+        Returns: CourseProgress[];
       };
     };
     Enums: {

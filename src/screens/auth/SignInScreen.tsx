@@ -3,7 +3,7 @@ import {View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {Button, Input, Screen, SynapseMark, Text} from '@/components';
-import {useAuth, useTheme} from '@/providers';
+import {useAuth, useT, useTheme} from '@/providers';
 import {isSupabaseConfigured} from '@/services/supabase';
 import {isValidEmail} from '@/utils';
 import type {AuthStackParamList} from '@/navigation/types';
@@ -15,6 +15,7 @@ type FormError = {field: 'email' | 'password' | 'form'; message: string};
 
 export const SignInScreen = () => {
   const theme = useTheme();
+  const {t} = useT();
   const navigation = useNavigation<Nav>();
   const {signIn} = useAuth();
 
@@ -26,22 +27,22 @@ export const SignInScreen = () => {
   const onSubmit = async () => {
     setError(null);
     if (!isValidEmail(email)) {
-      setError({field: 'email', message: 'Enter a valid email address.'});
+      setError({field: 'email', message: t('auth.invalidEmail')});
       return;
     }
     if (!password) {
-      setError({field: 'password', message: 'Enter your password.'});
+      setError({field: 'password', message: t('auth.enterPassword')});
       return;
     }
     if (!isSupabaseConfigured) {
-      setError({field: 'form', message: 'Backend is not configured yet, so sign-in is unavailable.'});
+      setError({field: 'form', message: t('auth.backendSignIn')});
       return;
     }
     setLoading(true);
     try {
       await signIn(email.trim(), password);
     } catch (e) {
-      setError({field: 'form', message: e instanceof Error ? e.message : 'Could not sign in.'});
+      setError({field: 'form', message: e instanceof Error ? e.message : t('auth.couldNotSignIn')});
     } finally {
       setLoading(false);
     }
@@ -55,23 +56,23 @@ export const SignInScreen = () => {
       <View style={{gap: theme.spacing.lg, paddingTop: theme.spacing.xl}}>
         <View style={{gap: theme.spacing.sm, marginBottom: theme.spacing.sm}}>
           <SynapseMark size={48} />
-          <Text variant="display">Welcome back</Text>
+          <Text variant="display">{t('signin.title')}</Text>
           <Text variant="bodyLg" color={theme.colors.textSecondary}>
-            Pick up where you left off.
+            {t('signin.subtitle')}
           </Text>
         </View>
         <Input
-          label="Email"
+          label={t('auth.email')}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
           autoComplete="email"
-          placeholder="you@example.com"
+          placeholder={t('auth.emailPlaceholder')}
           error={errorFor('email')}
         />
         <Input
-          label="Password"
+          label={t('auth.password')}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -92,14 +93,14 @@ export const SignInScreen = () => {
           </View>
         )}
         <Button
-          label="Sign in"
+          label={t('signin.signIn')}
           size="lg"
           loading={loading}
           onPress={onSubmit}
           style={{marginTop: theme.spacing.sm}}
         />
         <Button
-          label="Forgot password?"
+          label={t('signin.forgot')}
           variant="ghost"
           onPress={() => navigation.navigate('ForgotPassword')}
         />

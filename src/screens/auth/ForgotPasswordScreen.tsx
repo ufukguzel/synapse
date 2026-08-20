@@ -2,11 +2,12 @@ import {useState} from 'react';
 import {View} from 'react-native';
 import {Button, Input, Screen, Text} from '@/components';
 import {authService} from '@/services/supabase';
-import {useTheme} from '@/providers';
+import {useT, useTheme} from '@/providers';
 import {isValidEmail} from '@/utils';
 
 export const ForgotPasswordScreen = () => {
   const theme = useTheme();
+  const {t} = useT();
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -15,7 +16,7 @@ export const ForgotPasswordScreen = () => {
   const onSubmit = async () => {
     setError(null);
     if (!isValidEmail(email)) {
-      setError('Enter a valid email address.');
+      setError(t('auth.invalidEmail'));
       return;
     }
     setLoading(true);
@@ -31,20 +32,25 @@ export const ForgotPasswordScreen = () => {
   return (
     <Screen scroll>
       <View style={{gap: theme.spacing.lg, flex: 1, justifyContent: 'center'}}>
-        <Text variant="h1">Reset password</Text>
+        <Text variant="h1">{t('forgot.title')}</Text>
         <Text variant="body" color={theme.colors.textSecondary}>
-          We'll email you a link to choose a new password.
+          {t('forgot.subtitle')}
         </Text>
         <Input
-          label="Email"
+          label={t('auth.email')}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
           error={error}
-          hint={sent ? 'Check your inbox.' : undefined}
+          hint={sent ? t('forgot.inboxHint') : undefined}
         />
-        <Button label={sent ? 'Sent' : 'Send reset link'} disabled={sent} loading={loading} onPress={onSubmit} />
+        <Button
+          label={sent ? t('forgot.sent') : t('forgot.send')}
+          disabled={sent}
+          loading={loading}
+          onPress={onSubmit}
+        />
       </View>
     </Screen>
   );

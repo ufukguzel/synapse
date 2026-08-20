@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {Dimensions, Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -11,63 +12,76 @@ import {
   LoadingView,
   NeuralPattern,
   ProgressBar,
+  RegionDetailSheet,
   StatChip,
   Text,
+  type RegionLessonItem,
 } from '@/components';
 import {
   useCourseOutline,
+  useCourseProgress,
   useCourses,
-  useDueVocabulary,
-  useRecentActivity,
+  useLessonStates,
   useRegions,
-  useStreak,
+  useUserStats,
 } from '@/hooks';
-import {useAuth, useTheme} from '@/providers';
-import {formatMinutes, formatXp, pluralize} from '@/utils';
+import {useAuth, useT, useTheme} from '@/providers';
+import {formatXp, REGION_FOR_LESSON_KIND} from '@/utils';
+import type {TranslationKey} from '@/i18n';
+import type {RegionCode} from '@/types';
 import type {RootStackParamList} from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const HERO_HEIGHT = 190;
 
-const todayKey = () => new Date().toISOString().slice(0, 10);
-
-/** Time-of-day greeting, matching the handoff's "Good evening, Eda". */
-const greeting = () => {
+/** Time-of-day greeting key, matching the handoff's "Good evening, Eda". */
+const greetingKey = (): TranslationKey => {
   const hour = new Date().getHours();
   if (hour < 12) {
-    return 'Good morning';
+    return 'home.greetingMorning';
   }
-  return hour < 18 ? 'Good afternoon' : 'Good evening';
+  return hour < 18 ? 'home.greetingAfternoon' : 'home.greetingEvening';
 };
 
 export const HomeScreen = () => {
   const theme = useTheme();
+  const {t, tc, formatMinutes} = useT();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const {profile} = useAuth();
 
   const courses = useCourses(profile?.current_level);
-  const streak = useStreak();
-  const activity = useRecentActivity(7);
-  const due = useDueVocabulary();
+  const courseProgress = useCourseProgress();
   const regions = useRegions();
+  const stats = useUserStats();
 
   const courseList = courses.data ?? [];
   const currentCourse = courseList[0];
   const outline = useCourseOutline(currentCourse?.id);
+  const lessonStates = useLessonStates(currentCourse?.id);
+
+  // lesson_states is the authoritative gate; outline supplies the metadata the
+  // RPC doesn't carry (title, kind, minutes, XP). Falling back to isCompleted
+  // only covers the instant before lesson_states has loaded.
+  const statusByLessonId = new Map((lessonStates.data ?? []).map(s => [s.lesson_id, s.status]));
+  const mergedLessons = outline.lessons.map(lesson => ({
+    ...lesson,
+    status: statusByLessonId.get(lesson.id) ?? (lesson.isCompleted ? 'completed' : 'locked'),
+  }));
 
   const dailyGoal = profile?.daily_goal_minutes ?? 10;
-  const minutesToday =
-    activity.data?.find(row => row.activity_date === todayKey())?.minutes_studied ?? 0;
+  const minutesToday = stats.data?.minutes_today ?? 0;
   const goalProgress = dailyGoal > 0 ? minutesToday / dailyGoal : 0;
-  const goalReached = minutesToday >= dailyGoal;
+  const goalReached = stats.data?.goal_met_today ?? false;
 
   const firstName = profile?.display_name?.split(' ')[0];
-  const dueCount = due.data?.length ?? 0;
+  const dueCount = stats.data?.words_due ?? 0;
 
   const regionList = regions.data ?? [];
-  // The weakest region is what the plan should attack next.
+  // The weakest region is what the plan should attack next - and now that
+  // strengthen_region is actually wired to lesson completion, this genuinely
+  // moves instead of sitting at whatever it was seeded with.
   const weakest = regionList.reduce<(typeof regionList)[number] | undefined>(
     (lowest, region) => (!lowest || region.strength < lowest.strength ? region : lowest),
     undefined,
@@ -77,8 +91,26 @@ export const HomeScreen = () => {
     undefined,
   );
 
-  const firstOpenIndex = outline.lessons.findIndex(lesson => !lesson.isCompleted);
-  const nextLesson = firstOpenIndex >= 0 ? outline.lessons[firstOpenIndex] : undefined;
+  // A lesson already started (in_progress) is worth resuming before a fresh one.
+  const nextLesson =
+    mergedLessons.find(lesson => lesson.status === 'in_progress') ??
+    mergedLessons.find(lesson => lesson.status === 'available');
+
+  const [openRegionCode, setOpenRegionCode] = useState<RegionCode | null>(null);
+  const openRegion = regionList.find(region => region.code === openRegionCode) ?? null;
+  const regionLessons: RegionLessonItem[] = openRegionCode
+    ? mergedLessons
+        .filter(lesson => REGION_FOR_LESSON_KIND[lesson.kind] === openRegionCode)
+        .map(lesson => ({
+          id: lesson.id,
+          title: lesson.title,
+          status: lesson.status,
+          estimatedMinutes: lesson.estimated_minutes,
+          xpReward: lesson.xp_reward,
+        }))
+    : [];
+
+  const progressFor = (courseId: string) => courseProgress.data?.find(row => row.course_id === courseId);
 
   const hero = (
     <GradientSurface
@@ -102,14 +134,20 @@ export const HomeScreen = () => {
       </View>
 
       <Text variant="h1" color={theme.brand.mist}>
-        {firstName ? `${greeting()}, ${firstName}` : greeting()}
+        {firstName
+          ? t('home.greetingNamed', {greeting: t(greetingKey()), name: firstName})
+          : t(greetingKey())}
       </Text>
 
       <View style={[styles.chips, {gap: theme.spacing.sm}]}>
-        <StatChip value={`${streak.data?.current_streak ?? 0}-day`} label="streak" onGradient />
         <StatChip
-          value={formatXp(streak.data?.total_xp ?? 0)}
-          label="neural strength"
+          value={t('home.streakValue', {count: stats.data?.current_streak ?? 0})}
+          label={t('home.streak')}
+          onGradient
+        />
+        <StatChip
+          value={formatXp(stats.data?.total_xp ?? 0)}
+          label={t('home.neuralStrength')}
           onGradient
         />
       </View>
@@ -139,9 +177,9 @@ export const HomeScreen = () => {
         {/* 1 - the signature brain map */}
         <Card style={{gap: theme.spacing.base, alignItems: 'center'}}>
           <View style={[styles.row, styles.fullWidth]}>
-            <Text variant="bodyStrong">Your brain today</Text>
+            <Text variant="bodyStrong">{t('home.brainToday')}</Text>
             <Text variant="caption" color={theme.colors.textTertiary}>
-              {regionList.length ? 'Tap a region' : ''}
+              {regionList.length ? t('home.tapRegion') : ''}
             </Text>
           </View>
 
@@ -154,6 +192,7 @@ export const HomeScreen = () => {
               regions={regionList}
               focusCode={weakest?.code}
               size={Math.min(Dimensions.get('window').width - 64, 330)}
+              onPressRegion={code => setOpenRegionCode(code)}
             />
           )}
 
@@ -161,13 +200,13 @@ export const HomeScreen = () => {
             <View style={[styles.row, styles.fullWidth]}>
               <View style={{gap: theme.spacing.xxs}}>
                 <Text variant="overline" color={theme.colors.textTertiary}>
-                  Strongest
+                  {t('home.strongest')}
                 </Text>
                 <Text variant="bodyStrong">{strongest.title}</Text>
               </View>
               <View style={{gap: theme.spacing.xxs, alignItems: 'flex-end'}}>
                 <Text variant="overline" color={theme.colors.textTertiary}>
-                  Focus next
+                  {t('home.focusNext')}
                 </Text>
                 <Text variant="bodyStrong" color={theme.colors.accent}>
                   {weakest.title}
@@ -180,13 +219,16 @@ export const HomeScreen = () => {
         {/* 2 - today's goal */}
         <Card style={{gap: theme.spacing.md}}>
           <View style={styles.row}>
-            <Text variant="bodyStrong">Today's goal</Text>
+            <Text variant="bodyStrong">{t('home.todaysGoal')}</Text>
             <Text
               variant="caption"
               color={goalReached ? theme.colors.success : theme.colors.textSecondary}>
               {goalReached
-                ? "Today's goal met"
-                : `${formatMinutes(minutesToday)} / ${formatMinutes(dailyGoal)}`}
+                ? t('home.goalMet')
+                : t('home.goalProgress', {
+                    done: formatMinutes(minutesToday),
+                    goal: formatMinutes(dailyGoal),
+                  })}
             </Text>
           </View>
           <ProgressBar value={goalProgress} gradient={goalReached ? 'teal' : 'brand'} />
@@ -201,14 +243,17 @@ export const HomeScreen = () => {
             style={({pressed}) => ({opacity: pressed ? 0.9 : 1})}>
             <Card gradient="brand" style={{gap: theme.spacing.sm}}>
               <Text variant="overline" color="rgba(236, 234, 254, 0.8)">
-                Continue learning
+                {t('home.continueLearning')}
               </Text>
               <Text variant="h3" color={theme.brand.mist}>
                 {nextLesson.title}
               </Text>
               <Text variant="caption" color="rgba(236, 234, 254, 0.85)">
-                {nextLesson.unitTitle} · {nextLesson.estimated_minutes} min · +
-                {nextLesson.xp_reward} XP
+                {t('home.lessonMeta', {
+                  unit: nextLesson.unitTitle,
+                  minutes: nextLesson.estimated_minutes,
+                  xp: nextLesson.xp_reward,
+                })}
               </Text>
             </Card>
           </Pressable>
@@ -221,11 +266,11 @@ export const HomeScreen = () => {
             style={({pressed}) => ({opacity: pressed ? 0.9 : 1})}>
             <Card style={{gap: theme.spacing.sm}}>
               <View style={styles.row}>
-                <Text variant="bodyStrong">Memory check</Text>
-                <Badge label={`${dueCount} due`} tone="warning" solid />
+                <Text variant="bodyStrong">{t('home.memoryCheck')}</Text>
+                <Badge label={t('home.dueBadge', {count: dueCount})} tone="warning" solid />
               </View>
               <Text variant="body" color={theme.colors.textSecondary}>
-                {pluralize(dueCount, 'word')} about to fade. A quick pass keeps them.
+                {tc('home.wordsFading', dueCount)}
               </Text>
             </Card>
           </Pressable>
@@ -234,28 +279,48 @@ export const HomeScreen = () => {
         {/* 5 - other courses */}
         {courseList.length > 1 && (
           <View style={{gap: theme.spacing.md}}>
-            <Text variant="h2">More courses</Text>
-            {courseList.slice(1).map(course => (
-              <Pressable
-                key={course.id}
-                onPress={() =>
-                  navigation.navigate('CourseDetail', {courseId: course.id, title: course.title})
-                }
-                style={({pressed}) => ({opacity: pressed ? 0.9 : 1})}>
-                <Card style={{gap: theme.spacing.sm}}>
-                  <View style={styles.row}>
-                    <Badge label={course.level} tone="primary" />
-                    <Text variant="caption" color={theme.colors.textTertiary}>
-                      Start →
-                    </Text>
-                  </View>
-                  <Text variant="h3">{course.title}</Text>
-                </Card>
-              </Pressable>
-            ))}
+            <Text variant="h2">{t('home.moreCourses')}</Text>
+            {courseList.slice(1).map(course => {
+              const progress = progressFor(course.id);
+              return (
+                <Pressable
+                  key={course.id}
+                  onPress={() =>
+                    navigation.navigate('CourseDetail', {courseId: course.id, title: course.title})
+                  }
+                  style={({pressed}) => ({opacity: pressed ? 0.9 : 1})}>
+                  <Card style={{gap: theme.spacing.sm}}>
+                    <View style={styles.row}>
+                      <Badge label={course.level} tone="primary" />
+                      <Text variant="caption" color={theme.colors.textTertiary}>
+                        {progress
+                          ? `${progress.completed_lessons}/${progress.total_lessons}`
+                          : t('home.start')}
+                      </Text>
+                    </View>
+                    <Text variant="h3">{course.title}</Text>
+                  </Card>
+                </Pressable>
+              );
+            })}
           </View>
         )}
       </ScrollView>
+
+      <RegionDetailSheet
+        visible={!!openRegionCode}
+        region={openRegion}
+        lessons={regionLessons}
+        onClose={() => setOpenRegionCode(null)}
+        onSelectLesson={lessonId => {
+          const lesson = mergedLessons.find(item => item.id === lessonId);
+          if (!lesson || lesson.status === 'locked') {
+            return;
+          }
+          setOpenRegionCode(null);
+          navigation.navigate('Lesson', {lessonId: lesson.id, title: lesson.title});
+        }}
+      />
     </View>
   );
 };

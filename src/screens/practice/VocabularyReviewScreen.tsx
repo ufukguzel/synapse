@@ -1,29 +1,66 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {View} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import {useMutation} from '@tanstack/react-query';
 import {Button, Card, EmptyState, ErrorView, LoadingView, ProgressBar, Screen, Text} from '@/components';
 import {vocabularyApi} from '@/api';
-import {useDueVocabulary} from '@/hooks';
-import {useTheme} from '@/providers';
+import {useCompleteTask, useDueVocabulary, useRecordActivity} from '@/hooks';
+import {useT, useTheme} from '@/providers';
+import type {TranslationKey} from '@/i18n';
 import {scheduleNextReview} from '@/utils';
+import type {RootStackParamList} from '@/navigation/types';
 
-const QUALITY_BUTTONS = [
-  {label: 'Again', quality: 1, variant: 'danger' as const},
-  {label: 'Hard', quality: 3, variant: 'secondary' as const},
-  {label: 'Good', quality: 4, variant: 'primary' as const},
-  {label: 'Easy', quality: 5, variant: 'ghost' as const},
+type Route = RouteProp<RootStackParamList, 'VocabularyReview'>;
+
+const QUALITY_BUTTONS: {labelKey: TranslationKey; quality: number; variant: 'danger' | 'secondary' | 'primary' | 'ghost'}[] = [
+  {labelKey: 'vocab.again', quality: 1, variant: 'danger'},
+  {labelKey: 'vocab.hard', quality: 3, variant: 'secondary'},
+  {labelKey: 'vocab.good', quality: 4, variant: 'primary'},
+  {labelKey: 'vocab.easy', quality: 5, variant: 'ghost'},
 ];
+
+/** Modest XP per word - well under a lesson's, so review can't outpace lessons. */
+const XP_PER_WORD = 2;
 
 export const VocabularyReviewScreen = () => {
   const theme = useTheme();
+  const {t, tc} = useT();
   const navigation = useNavigation();
+  const {params} = useRoute<Route>();
 
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
 
   const dueQuery = useDueVocabulary();
   const saveReview = useMutation({mutationFn: vocabularyApi.saveReview});
+  const recordActivity = useRecordActivity();
+  const completeTask = useCompleteTask();
+
+  const items = dueQuery.data ?? [];
+  const current = items[index];
+  const finished = items.length > 0 && index >= items.length;
+
+  // All hooks run unconditionally, before the loading/empty/finished branches
+  // below return early - a session-elapsed timer and a once-only guard.
+  const sessionStartRef = useRef(Date.now());
+  const recordedRef = useRef(false);
+
+  useEffect(() => {
+    if (!finished || recordedRef.current) {
+      return;
+    }
+    recordedRef.current = true;
+    // Nothing called record_activity for a review session before this, so
+    // reviewing words never moved the streak or the daily goal no matter how
+    // long it took.
+    const minutes = Math.max(1, Math.round((Date.now() - sessionStartRef.current) / 60_000));
+    recordActivity.mutate({minutes, xp: items.length * XP_PER_WORD, lessons: 0});
+    // Opened from the Tasks tab: close the task too, same as a lesson does.
+    if (params?.taskId) {
+      completeTask.mutate(params.taskId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished]);
 
   if (dueQuery.isLoading) {
     return <LoadingView />;
@@ -32,15 +69,12 @@ export const VocabularyReviewScreen = () => {
     return <ErrorView error={dueQuery.error} onRetry={dueQuery.refetch} />;
   }
 
-  const items = dueQuery.data ?? [];
-  const current = items[index];
-
   if (!items.length) {
     return (
       <EmptyState
-        title="All caught up"
-        description="No words are due for review right now. Come back later."
-        actionLabel="Go back"
+        title={t('vocab.allCaughtTitle')}
+        description={t('vocab.allCaughtDesc')}
+        actionLabel={t('vocab.goBack')}
         onAction={navigation.goBack}
       />
     );
@@ -49,9 +83,9 @@ export const VocabularyReviewScreen = () => {
   if (!current) {
     return (
       <EmptyState
-        title="Review finished"
-        description={`You reviewed ${items.length} words.`}
-        actionLabel="Done"
+        title={t('vocab.finishedTitle')}
+        description={tc('vocab.finishedDesc', items.length)}
+        actionLabel={t('vocab.done')}
         onAction={navigation.goBack}
       />
     );
@@ -110,8 +144,8 @@ export const VocabularyReviewScreen = () => {
           <View style={{flexDirection: 'row', gap: theme.spacing.sm}}>
             {QUALITY_BUTTONS.map(button => (
               <Button
-                key={button.label}
-                label={button.label}
+                key={button.labelKey}
+                label={t(button.labelKey)}
                 variant={button.variant}
                 size="sm"
                 fullWidth={false}
@@ -122,7 +156,7 @@ export const VocabularyReviewScreen = () => {
             ))}
           </View>
         ) : (
-          <Button label="Show answer" onPress={() => setRevealed(true)} />
+          <Button label={t('vocab.showAnswer')} onPress={() => setRevealed(true)} />
         )}
       </View>
     </Screen>

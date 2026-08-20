@@ -20,20 +20,27 @@ import {
   findLanguage,
 } from '@/constants';
 import {useUpdateProfile} from '@/hooks';
-import {useAuth, useTheme, type ThemePreference} from '@/providers';
-import {formatMinutes} from '@/utils';
+import {useAuth, useT, useTheme, type ThemePreference} from '@/providers';
+import type {TranslationKey} from '@/i18n';
 import type {Profile} from '@/types';
 
 type PickerKind = 'learning' | 'ui' | 'native' | null;
 
-const THEME_OPTIONS: {value: ThemePreference; title: string; description: string}[] = [
-  {value: 'brand', title: 'Deep Space', description: 'The brand theme. Recommended.'},
-  {value: 'light', title: 'Light', description: 'A lighter variant for bright rooms.'},
-  {value: 'system', title: 'Match device', description: 'Follow your system appearance.'},
+const THEME_OPTIONS: {
+  value: ThemePreference;
+  titleKey: TranslationKey;
+  descriptionKey: TranslationKey;
+}[] = [
+  {value: 'brand', titleKey: 'settings.themeDeepSpace', descriptionKey: 'settings.themeDeepSpaceDesc'},
+  {value: 'light', titleKey: 'settings.themeLight', descriptionKey: 'settings.themeLightDesc'},
+  {value: 'system', titleKey: 'settings.themeSystem', descriptionKey: 'settings.themeSystemDesc'},
 ];
+
+const APP_VERSION = '0.1.0';
 
 export const SettingsScreen = () => {
   const theme = useTheme();
+  const {t, formatMinutes} = useT();
   const {signOut, user, profile} = useAuth();
   const updateProfile = useUpdateProfile();
 
@@ -45,8 +52,8 @@ export const SettingsScreen = () => {
     updateProfile.mutate(patch, {
       onError: error =>
         Alert.alert(
-          'Could not save',
-          error instanceof Error ? error.message : 'Please try again.',
+          t('settings.couldNotSave'),
+          error instanceof Error ? error.message : t('settings.tryAgain'),
         ),
     });
   };
@@ -56,18 +63,18 @@ export const SettingsScreen = () => {
   const native = findLanguage(NATIVE_LANGUAGES, profile?.native_language);
 
   const confirmSignOut = () => {
-    Alert.alert('Sign out', 'You can pick up where you left off any time.', [
-      {text: 'Cancel', style: 'cancel'},
+    Alert.alert(t('settings.signOutTitle'), t('settings.signOutBody'), [
+      {text: t('settings.signOutCancel'), style: 'cancel'},
       {
-        text: 'Sign out',
+        text: t('settings.signOutConfirm'),
         style: 'destructive',
         onPress: async () => {
           try {
             await signOut();
           } catch (error) {
             Alert.alert(
-              'Sign out failed',
-              error instanceof Error ? error.message : 'Please try again.',
+              t('settings.signOutFailed'),
+              error instanceof Error ? error.message : t('settings.tryAgain'),
             );
           }
         },
@@ -79,12 +86,10 @@ export const SettingsScreen = () => {
     <Screen scroll contentContainerStyle={{padding: theme.spacing.base}}>
       <View style={{gap: theme.spacing.xl}}>
         {/* ---- Learning ---------------------------------------------------- */}
-        <SettingsGroup
-          title="Learning"
-          footer="Only English has lessons today. The other languages are listed so you can see what is coming.">
+        <SettingsGroup title={t('settings.learning')} footer={t('settings.learningFooter')}>
           <SettingsNavRow
             icon={learning?.flag}
-            label="I'm learning"
+            label={t('settings.imLearning')}
             description={learning?.englishName}
             value={learning?.nativeName ?? '—'}
             onPress={() => setPicker('learning')}
@@ -92,14 +97,14 @@ export const SettingsScreen = () => {
           <Hairline />
           <SettingsNavRow
             icon={native?.flag}
-            label="My language"
-            description="Used for translations and hints"
+            label={t('settings.myLanguage')}
+            description={t('settings.myLanguageDesc')}
             value={native?.nativeName ?? '—'}
             onPress={() => setPicker('native')}
           />
           <Hairline />
           <SettingsNavRow
-            label="Daily goal"
+            label={t('settings.dailyGoal')}
             value={formatMinutes(profile?.daily_goal_minutes ?? 10)}
             onPress={() => setExpanded(expanded === 'goal' ? null : 'goal')}
           />
@@ -110,7 +115,7 @@ export const SettingsScreen = () => {
             {DAILY_GOAL_OPTIONS.map(option => (
               <OptionRow
                 key={option}
-                title={`${formatMinutes(option)} a day`}
+                title={t('settings.goalPerDay', {minutes: formatMinutes(option)})}
                 selected={(profile?.daily_goal_minutes ?? 10) === option}
                 onPress={() => save({daily_goal_minutes: option})}
               />
@@ -119,7 +124,7 @@ export const SettingsScreen = () => {
         )}
 
         {/* ---- Level ------------------------------------------------------- */}
-        <SettingsGroup title="Level">
+        <SettingsGroup title={t('settings.level')}>
           <View
             style={{
               flexDirection: 'row',
@@ -128,9 +133,9 @@ export const SettingsScreen = () => {
               gap: theme.spacing.md,
             }}>
             <View style={{flex: 1, gap: theme.spacing.xxs}}>
-              <Text variant="bodyStrong">Current level</Text>
+              <Text variant="bodyStrong">{t('settings.currentLevel')}</Text>
               <Text variant="caption" color={theme.colors.textTertiary}>
-                Set when you joined. A placement check is coming.
+                {t('settings.currentLevelDesc')}
               </Text>
             </View>
             <Badge label={profile?.current_level ?? 'A1'} tone="primary" solid />
@@ -138,15 +143,13 @@ export const SettingsScreen = () => {
         </SettingsGroup>
 
         {/* ---- Reminders --------------------------------------------------- */}
-        <SettingsGroup
-          title="Reminders"
-          footer="Memory fades without recall. A gentle nudge keeps your pathways lit.">
+        <SettingsGroup title={t('settings.reminders')} footer={t('settings.remindersFooter')}>
           <SettingsToggleRow
-            label="Daily reminder"
+            label={t('settings.dailyReminder')}
             description={
               profile?.reminder_time
-                ? `At ${profile.reminder_time.slice(0, 5)}`
-                : 'Off - no reminder scheduled'
+                ? t('settings.reminderAt', {time: profile.reminder_time.slice(0, 5)})
+                : t('settings.reminderOff')
             }
             value={profile?.notifications_enabled ?? false}
             onValueChange={next =>
@@ -160,28 +163,31 @@ export const SettingsScreen = () => {
         </SettingsGroup>
 
         {/* ---- App --------------------------------------------------------- */}
-        <SettingsGroup title="App">
+        <SettingsGroup title={t('settings.app')}>
           <SettingsNavRow
             icon={ui?.flag}
-            label="Interface language"
+            label={t('settings.interfaceLanguage')}
             value={ui?.nativeName ?? '—'}
             onPress={() => setPicker('ui')}
           />
           <Hairline />
           <SettingsNavRow
-            label="Appearance"
-            value={THEME_OPTIONS.find(option => option.value === theme.preference)?.title}
+            label={t('settings.appearance')}
+            value={(() => {
+              const option = THEME_OPTIONS.find(o => o.value === theme.preference);
+              return option ? t(option.titleKey) : undefined;
+            })()}
             onPress={() => setExpanded(expanded === 'theme' ? null : 'theme')}
           />
           <Hairline />
           <SettingsToggleRow
-            label="Sound effects"
+            label={t('settings.sound')}
             value={profile?.sound_enabled ?? true}
             onValueChange={next => save({sound_enabled: next})}
           />
           <Hairline />
           <SettingsToggleRow
-            label="Haptics"
+            label={t('settings.haptics')}
             value={profile?.haptics_enabled ?? true}
             onValueChange={next => save({haptics_enabled: next})}
           />
@@ -192,8 +198,8 @@ export const SettingsScreen = () => {
             {THEME_OPTIONS.map(option => (
               <OptionRow
                 key={option.value}
-                title={option.title}
-                description={option.description}
+                title={t(option.titleKey)}
+                description={t(option.descriptionKey)}
                 selected={theme.preference === option.value}
                 onPress={() => theme.setPreference(option.value)}
               />
@@ -202,25 +208,25 @@ export const SettingsScreen = () => {
         )}
 
         {/* ---- Account ----------------------------------------------------- */}
-        <SettingsGroup title="Account">
+        <SettingsGroup title={t('settings.account')}>
           <View style={{paddingVertical: theme.spacing.md, gap: theme.spacing.xxs}}>
             <Text variant="caption" color={theme.colors.textTertiary}>
-              Signed in as
+              {t('settings.signedInAs')}
             </Text>
             <Text variant="bodyStrong">{user?.email}</Text>
           </View>
         </SettingsGroup>
 
-        <Button label="Sign out" variant="secondary" onPress={confirmSignOut} />
+        <Button label={t('settings.signOut')} variant="secondary" onPress={confirmSignOut} />
 
         <Text variant="caption" center color={theme.colors.textTertiary}>
-          {APP_NAME} v0.1.0
+          {t('settings.version', {name: APP_NAME, version: APP_VERSION})}
         </Text>
       </View>
 
       <LanguagePicker
         visible={picker === 'learning'}
-        title="What are you learning?"
+        title={t('settings.learningPickerTitle')}
         options={LEARNING_LANGUAGES}
         selectedCode={profile?.learning_language}
         gateOnAvailability
@@ -229,7 +235,7 @@ export const SettingsScreen = () => {
       />
       <LanguagePicker
         visible={picker === 'native'}
-        title="Your language"
+        title={t('settings.nativePickerTitle')}
         options={NATIVE_LANGUAGES}
         selectedCode={profile?.native_language}
         onSelect={code => save({native_language: code})}
@@ -237,7 +243,7 @@ export const SettingsScreen = () => {
       />
       <LanguagePicker
         visible={picker === 'ui'}
-        title="Interface language"
+        title={t('settings.uiPickerTitle')}
         options={UI_LANGUAGES}
         selectedCode={profile?.ui_language}
         onSelect={code => save({ui_language: code})}

@@ -1,6 +1,6 @@
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {Icon, type IconName} from '@/components';
-import {useTheme} from '@/providers';
+import {useT, useTheme} from '@/providers';
 import {HomeScreen} from '@/screens/home/HomeScreen';
 import {TasksScreen} from '@/screens/tasks/TasksScreen';
 import {PracticeScreen} from '@/screens/practice/PracticeScreen';
@@ -20,6 +20,7 @@ const tabIcon =
 
 export const MainTabNavigator = () => {
   const theme = useTheme();
+  const {t} = useT();
 
   return (
     <Tab.Navigator
@@ -43,22 +44,22 @@ export const MainTabNavigator = () => {
       <Tab.Screen
         name="HomeTab"
         component={HomeScreen}
-        options={{title: 'Brain', tabBarIcon: tabIcon('brain')}}
+        options={{title: t('tab.brain'), tabBarIcon: tabIcon('brain')}}
       />
       <Tab.Screen
         name="TasksTab"
         component={TasksScreen}
-        options={{title: 'Tasks', tabBarIcon: tabIcon('tasks')}}
+        options={{title: t('tab.tasks'), tabBarIcon: tabIcon('tasks')}}
       />
       <Tab.Screen
         name="PracticeTab"
         component={PracticeScreen}
-        options={{title: 'Practice', tabBarIcon: tabIcon('practice')}}
+        options={{title: t('tab.practice'), tabBarIcon: tabIcon('practice')}}
       />
       <Tab.Screen
         name="ProfileTab"
         component={ProfileScreen}
-        options={{title: 'Profile', tabBarIcon: tabIcon('profile')}}
+        options={{title: t('tab.profile'), tabBarIcon: tabIcon('profile')}}
       />
     </Tab.Navigator>
   );

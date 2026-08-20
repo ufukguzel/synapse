@@ -2,14 +2,13 @@ import {StyleSheet, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {Badge, Button, Card, Screen, Text} from '@/components';
-import {useRecentActivity, useStreak} from '@/hooks';
-import {useAuth, useTheme} from '@/providers';
-import {formatMinutes, formatXp} from '@/utils';
+import {useRecentActivity, useUserStats} from '@/hooks';
+import {useAuth, useT, useTheme} from '@/providers';
+import {formatXp} from '@/utils';
+import type {TranslationKey} from '@/i18n';
 import type {RootStackParamList} from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 /** Last 7 dates, oldest first, as YYYY-MM-DD. */
 const lastSevenDays = () => {
@@ -23,14 +22,18 @@ const lastSevenDays = () => {
 
 export const ProfileScreen = () => {
   const theme = useTheme();
+  const {t, tc, formatMinutes} = useT();
   const navigation = useNavigation<Nav>();
   const {profile, user} = useAuth();
-  const streak = useStreak();
+  // One round trip for the headline numbers, instead of a streak query plus
+  // seven rows of daily_activity summed here in JS.
+  const stats = useUserStats();
+  // The per-day calendar strip still needs the daily rows themselves.
   const activity = useRecentActivity(7);
 
-  const days = activity.data ?? [];
-  const weekMinutes = days.reduce((sum, day) => sum + day.minutes_studied, 0);
-  const minutesByDate = new Map(days.map(day => [day.activity_date, day.minutes_studied]));
+  const minutesByDate = new Map(
+    (activity.data ?? []).map(day => [day.activity_date, day.minutes_studied]),
+  );
 
   const initial = (profile?.display_name ?? user?.email ?? '?').trim().charAt(0).toUpperCase();
 
@@ -48,9 +51,9 @@ export const ProfileScreen = () => {
             </Text>
           </View>
           <View style={{flex: 1, gap: theme.spacing.xs}}>
-            <Text variant="h2">{profile?.display_name ?? user?.email ?? 'Profile'}</Text>
+            <Text variant="h2">{profile?.display_name ?? user?.email ?? t('profile.fallback')}</Text>
             {!!profile?.current_level && (
-              <Badge label={`Level ${profile.current_level}`} tone="primary" solid />
+              <Badge label={t('profile.level', {level: profile.current_level})} tone="primary" solid />
             )}
           </View>
         </View>
@@ -60,25 +63,25 @@ export const ProfileScreen = () => {
         <View style={{flexDirection: 'row', gap: theme.spacing.md}}>
           <Card gradient="accent" style={[styles.metric, {gap: theme.spacing.xxs}]}>
             <Text variant="display" color={theme.palette.white}>
-              {streak.data?.current_streak ?? 0}
+              {stats.data?.current_streak ?? 0}
             </Text>
             <Text variant="caption" color="rgba(255, 255, 255, 0.85)">
-              day streak
+              {t('profile.dayStreak')}
             </Text>
           </Card>
           <Card style={[styles.metric, {gap: theme.spacing.xxs}]}>
-            <Text variant="display">{formatXp(streak.data?.total_xp ?? 0)}</Text>
+            <Text variant="display">{formatXp(stats.data?.total_xp ?? 0)}</Text>
             <Text variant="caption" color={theme.colors.textSecondary}>
-              neural strength
+              {t('profile.neuralStrength')}
             </Text>
           </Card>
         </View>
 
         <Card style={{gap: theme.spacing.base}}>
           <View style={styles.row}>
-            <Text variant="bodyStrong">This week</Text>
+            <Text variant="bodyStrong">{t('profile.thisWeek')}</Text>
             <Text variant="caption" color={theme.colors.textSecondary}>
-              {formatMinutes(weekMinutes)}
+              {formatMinutes(stats.data?.minutes_week ?? 0)}
             </Text>
           </View>
           <View style={styles.week}>
@@ -100,7 +103,7 @@ export const ProfileScreen = () => {
                     </Text>
                   </View>
                   <Text variant="caption" color={theme.colors.textTertiary}>
-                    {DAY_LABELS[day.weekday]}
+                    {t(`day.${day.weekday}` as TranslationKey)}
                   </Text>
                 </View>
               );
@@ -109,13 +112,24 @@ export const ProfileScreen = () => {
         </Card>
 
         <Card style={{gap: theme.spacing.md}}>
-          <Row label="Longest streak" value={`${streak.data?.longest_streak ?? 0} days`} />
-          <Row label="Daily goal" value={formatMinutes(profile?.daily_goal_minutes ?? 10)} />
-          <Row label="Target level" value={profile?.target_level ?? '—'} />
+          <Row
+            label={t('profile.longestStreak')}
+            value={tc('profile.longestStreakValue', stats.data?.longest_streak ?? 0)}
+          />
+          <Row
+            label={t('profile.lessonsCompleted')}
+            value={String(stats.data?.lessons_completed ?? 0)}
+          />
+          <Row label={t('profile.wordsLearned')} value={String(stats.data?.words_learned ?? 0)} />
+          {!!stats.data?.words_due && (
+            <Row label={t('profile.wordsDue')} value={String(stats.data.words_due)} />
+          )}
+          <Row label={t('profile.dailyGoal')} value={formatMinutes(profile?.daily_goal_minutes ?? 10)} />
+          <Row label={t('profile.targetLevel')} value={profile?.target_level ?? '—'} />
         </Card>
 
         <Button
-          label="Settings"
+          label={t('profile.settings')}
           variant="secondary"
           onPress={() => navigation.navigate('Settings')}
         />

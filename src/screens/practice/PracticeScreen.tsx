@@ -3,8 +3,7 @@ import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {Button, Card, Screen, StatChip, Text} from '@/components';
 import {useAvailableVocabulary, useDueVocabulary, useEnrollVocabulary} from '@/hooks';
-import {useAuth, useTheme} from '@/providers';
-import {pluralize} from '@/utils';
+import {useAuth, useT, useTheme} from '@/providers';
 import type {RootStackParamList} from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -13,6 +12,7 @@ const BATCH_SIZE = 10;
 
 export const PracticeScreen = () => {
   const theme = useTheme();
+  const {t, tc} = useT();
   const navigation = useNavigation<Nav>();
   const {profile} = useAuth();
 
@@ -33,21 +33,21 @@ export const PracticeScreen = () => {
   return (
     <Screen scroll contentContainerStyle={{padding: theme.spacing.base}}>
       <View style={{gap: theme.spacing.lg}}>
-        <Text variant="display">Practice</Text>
+        <Text variant="display">{t('practice.title')}</Text>
 
         <Card gradient="brand" style={{gap: theme.spacing.base}}>
           <Text variant="h3" color={theme.palette.white}>
-            Vocabulary review
+            {t('practice.vocabReview')}
           </Text>
           <Text variant="body" color="rgba(255, 255, 255, 0.85)">
-            Spaced repetition brings words back right before you would forget them.
+            {t('practice.srsBlurb')}
           </Text>
           <View style={{flexDirection: 'row', gap: theme.spacing.sm, flexWrap: 'wrap'}}>
-            <StatChip value={String(dueCount)} label="due now" onGradient />
-            <StatChip value={String(availableWords.length)} label="new" onGradient />
+            <StatChip value={String(dueCount)} label={t('practice.dueNow')} onGradient />
+            <StatChip value={String(availableWords.length)} label={t('practice.new')} onGradient />
           </View>
           <Button
-            label={dueCount > 0 ? `Review ${pluralize(dueCount, 'word')}` : 'Nothing due yet'}
+            label={dueCount > 0 ? tc('practice.reviewWords', dueCount) : t('practice.nothingDue')}
             variant="secondary"
             disabled={dueCount === 0}
             loading={due.isLoading}
@@ -56,19 +56,19 @@ export const PracticeScreen = () => {
         </Card>
 
         <Card style={{gap: theme.spacing.md}}>
-          <Text variant="h3">Add new words</Text>
+          <Text variant="h3">{t('practice.addNewWords')}</Text>
           <Text variant="body" color={theme.colors.textSecondary}>
             {availableWords.length > 0
-              ? `${pluralize(availableWords.length, 'word')} at level ${
-                  profile?.current_level ?? 'A1'
-                } ready to start learning.`
-              : 'You have started every word available at your level. New content will show up here.'}
+              ? tc('practice.wordsReady', availableWords.length, {
+                  level: profile?.current_level ?? 'A1',
+                })
+              : t('practice.allStarted')}
           </Text>
           <Button
             label={
               availableWords.length > 0
-                ? `Add ${pluralize(availableWords.length, 'word')} to review`
-                : 'Nothing to add'
+                ? tc('practice.addToReview', availableWords.length)
+                : t('practice.nothingToAdd')
             }
             disabled={availableWords.length === 0}
             loading={enroll.isPending || available.isLoading}
@@ -76,7 +76,7 @@ export const PracticeScreen = () => {
           />
           {enroll.isError && (
             <Text variant="caption" color={theme.colors.danger}>
-              Could not add the words. Please try again.
+              {t('practice.addError')}
             </Text>
           )}
         </Card>

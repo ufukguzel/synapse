@@ -139,6 +139,31 @@ export type UserStreak = {
   updated_at: string;
 }
 
+/** Return shape of the `complete_lesson` RPC. */
+export type CompleteLessonResult = {
+  is_first_completion: boolean;
+  xp_awarded: number;
+  enrolled_count: number;
+  streak: UserStreak;
+}
+
+/** One row of the `lesson_states` RPC — a lesson's gating state for the user. */
+export type LessonState = {
+  lesson_id: string;
+  unit_id: string;
+  seq: number;
+  status: ProgressStatus;
+  score: number | null;
+  is_available: boolean;
+}
+
+/** One row of the `course_progress` RPC — completed vs total lessons per course. */
+export type CourseProgress = {
+  course_id: string;
+  total_lessons: number;
+  completed_lessons: number;
+}
+
 export type DailyActivity = {
   id: string;
   user_id: string;
@@ -229,6 +254,18 @@ export type Database = {
       strengthen_region: {
         Args: {p_region_code: string; p_amount?: number};
         Returns: UserRegionStrength;
+      };
+      complete_lesson: {
+        Args: {p_lesson_id: string; p_score?: number; p_minutes?: number};
+        Returns: CompleteLessonResult;
+      };
+      lesson_states: {
+        Args: {p_course_id: string};
+        Returns: LessonState[];
+      };
+      course_progress: {
+        Args: Record<string, never>;
+        Returns: CourseProgress[];
       };
     };
     Enums: {

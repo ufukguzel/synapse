@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {View} from 'react-native';
+import {ScrollView, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {Badge, Button, OptionRow, Screen, StepHeader, Text} from '@/components';
@@ -35,15 +35,19 @@ export const LanguageSelectScreen = () => {
   };
 
   return (
-    <Screen scroll contentContainerStyle={{padding: theme.spacing.base}}>
-      <View style={{gap: theme.spacing.lg}}>
-        <StepHeader
-          step={1}
-          total={4}
-          title="Which language?"
-          subtitle="Pick what you want to learn, and the language we should explain things in."
-        />
+    <Screen>
+      <StepHeader
+        step={1}
+        total={4}
+        title="Which language?"
+        subtitle="Pick what you want to learn, and the language we should explain things in."
+      />
 
+      {/* The lists scroll; the Continue button below stays pinned and reachable. */}
+      <ScrollView
+        style={{flex: 1}}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{gap: theme.spacing.lg, paddingVertical: theme.spacing.lg}}>
         <View style={{gap: theme.spacing.md}}>
           <Text variant="overline" color={theme.colors.textTertiary}>
             I want to learn
@@ -81,15 +85,16 @@ export const LanguageSelectScreen = () => {
         </View>
 
         {!isAvailable(learning) && <Badge label="Not available yet" tone="warning" />}
+      </ScrollView>
 
-        <Button
-          label="Continue"
-          size="lg"
-          disabled={!isAvailable(learning)}
-          loading={updateProfile.isPending}
-          onPress={onContinue}
-        />
-      </View>
+      <Button
+        label="Continue"
+        size="lg"
+        disabled={!isAvailable(learning)}
+        loading={updateProfile.isPending}
+        onPress={onContinue}
+        style={{marginTop: theme.spacing.sm}}
+      />
     </Screen>
   );
 };

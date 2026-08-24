@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {View} from 'react-native';
+import {ScrollView} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {Button, OptionRow, Screen, StepHeader} from '@/components';
@@ -32,34 +32,36 @@ export const GoalSelectScreen = () => {
   };
 
   return (
-    <Screen scroll contentContainerStyle={{padding: theme.spacing.base}}>
-      <View style={{gap: theme.spacing.lg}}>
-        <StepHeader
-          step={3}
-          total={4}
-          title="Daily goal"
-          subtitle="Consistency beats intensity. Start small."
-        />
+    <Screen>
+      <StepHeader
+        step={3}
+        total={4}
+        title="Daily goal"
+        subtitle="Consistency beats intensity. Start small."
+      />
 
-        <View style={{gap: theme.spacing.md}}>
-          {DAILY_GOAL_OPTIONS.map(option => (
-            <OptionRow
-              key={option}
-              title={`${formatMinutes(option)} a day`}
-              description={GOAL_HINTS[option]}
-              selected={minutes === option}
-              onPress={() => setMinutes(option)}
-            />
-          ))}
-        </View>
+      <ScrollView
+        style={{flex: 1}}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{gap: theme.spacing.md, paddingVertical: theme.spacing.lg}}>
+        {DAILY_GOAL_OPTIONS.map(option => (
+          <OptionRow
+            key={option}
+            title={`${formatMinutes(option)} a day`}
+            description={GOAL_HINTS[option]}
+            selected={minutes === option}
+            onPress={() => setMinutes(option)}
+          />
+        ))}
+      </ScrollView>
 
-        <Button
-          label="Continue"
-          size="lg"
-          loading={updateProfile.isPending}
-          onPress={onContinue}
-        />
-      </View>
+      <Button
+        label="Continue"
+        size="lg"
+        loading={updateProfile.isPending}
+        onPress={onContinue}
+        style={{marginTop: theme.spacing.sm}}
+      />
     </Screen>
   );
 };

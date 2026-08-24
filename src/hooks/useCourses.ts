@@ -18,3 +18,13 @@ export const useLessons = (unitId: string | undefined) =>
     queryFn: () => coursesApi.lessons(unitId!),
     enabled: !!unitId,
   });
+
+export const useLessonStates = (courseId: string | undefined) =>
+  useQuery({
+    queryKey: ['lesson-states', courseId],
+    queryFn: () => coursesApi.lessonStates(courseId!),
+    enabled: !!courseId,
+  });
+
+export const useCourseProgress = () =>
+  useQuery({queryKey: ['course-progress'], queryFn: () => coursesApi.progress()});

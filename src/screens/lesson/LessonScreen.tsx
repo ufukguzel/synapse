@@ -1,8 +1,8 @@
-import {useEffect} from 'react';
-import {StyleSheet, View} from 'react-native';
+import {useEffect, useRef} from 'react';
+import {Alert, Pressable, StyleSheet, View} from 'react-native';
 import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {
   EmptyState,
   ErrorView,
@@ -14,7 +14,7 @@ import {
 } from '@/components';
 import {lessonsApi} from '@/api';
 import {HEARTS_PER_SESSION} from '@/constants';
-import {useLessonSession, useRecordActivity} from '@/hooks';
+import {useLessonSession} from '@/hooks';
 import {useAuth, useTheme} from '@/providers';
 import type {RootStackParamList} from '@/navigation/types';
 
@@ -39,38 +39,77 @@ export const LessonScreen = () => {
     queryFn: () => lessonsApi.get(params.lessonId),
   });
 
+  const queryClient = useQueryClient();
+
+  // One atomic call: progress + server-side XP + streak + vocabulary enrolment.
+  // Replaces the old two-step (upsert + record_activity) so XP can't be inflated
+  // by the client and the lesson's words land in the review queue automatically.
   const completeLesson = useMutation({
-    mutationFn: (score: number) =>
-      lessonsApi.complete({userId: user!.id, lessonId: params.lessonId, score}),
+    mutationFn: (vars: {score: number; minutes: number}) =>
+      lessonsApi.completeLesson({
+        lessonId: params.lessonId,
+        score: vars.score,
+        minutes: vars.minutes,
+      }),
+    onSuccess: () => {
+      if (!user?.id) {
+        return;
+      }
+      queryClient.invalidateQueries({queryKey: ['streak', user.id]});
+      queryClient.invalidateQueries({queryKey: ['daily-activity', user.id]});
+      queryClient.invalidateQueries({queryKey: ['profile', user.id]});
+      // Completing a lesson can unlock the next one and moves course progress.
+      queryClient.invalidateQueries({queryKey: ['lesson-states']});
+      queryClient.invalidateQueries({queryKey: ['course-progress']});
+    },
   });
 
-  const recordActivity = useRecordActivity();
+  // Leaving mid-lesson throws away the in-progress run, so confirm first.
+  const confirmQuit = () => {
+    Alert.alert('Quit lesson?', "Your progress in this lesson won't be saved.", [
+      {text: 'Keep going', style: 'cancel'},
+      {text: 'Quit', style: 'destructive', onPress: () => navigation.goBack()},
+    ]);
+  };
+
+  // Finish/fail fires the effect; guard so completion runs exactly once.
+  const finalizedRef = useRef(false);
 
   useEffect(() => {
-    // Running out of hearts ends the session too, otherwise the hearts counter is
-    // decoration and a learner can miss every question and still finish.
-    if (!session.isFinished && !session.isFailed) {
+    if ((!session.isFinished && !session.isFailed) || finalizedRef.current) {
       return;
     }
-    // A failed run is not a completed lesson, so don't record progress for it.
-    if (session.isFinished && !session.isFailed && user?.id) {
-      completeLesson.mutate(Math.round(session.accuracy * 100));
-      // Feeds the streak, the XP total and today's goal bar. Without this the
-      // gamification numbers stayed at zero no matter how much was studied.
-      recordActivity.mutate({
-        minutes: lessonQuery.data?.estimated_minutes ?? 0,
-        xp: session.xp,
-        lessons: 1,
+    finalizedRef.current = true;
+
+    const goToResult = (xp: number) =>
+      navigation.replace('LessonResult', {
+        lessonId: params.lessonId,
+        xp,
+        accuracy: session.accuracy,
+        failed: session.isFailed,
       });
+
+    // A failed run (out of hearts) is not a completion — record nothing.
+    if (session.isFailed || !user?.id) {
+      goToResult(session.xp);
+      return;
     }
-    navigation.replace('LessonResult', {
-      lessonId: params.lessonId,
-      xp: session.xp,
-      accuracy: session.accuracy,
-      failed: session.isFailed,
-    });
+
+    // Wait for the RPC so the result shows the XP the server actually awarded.
+    completeLesson.mutate(
+      {score: Math.round(session.accuracy * 100), minutes: lessonQuery.data?.estimated_minutes ?? 0},
+      {
+        onSuccess: result => goToResult(result.xp_awarded),
+        onError: () => goToResult(session.xp),
+      },
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.isFinished, session.isFailed]);
+
+  // Finished (not failed), waiting on the completion RPC before the result screen.
+  if (session.isFinished && !session.isFailed && completeLesson.isPending) {
+    return <LoadingView message="Saving your progress…" />;
+  }
 
   if (exercisesQuery.isLoading) {
     return <LoadingView />;
@@ -93,6 +132,17 @@ export const LessonScreen = () => {
     <Screen>
       <View style={{gap: theme.spacing.md, marginBottom: theme.spacing.xl}}>
         <View style={styles.topRow}>
+          {/* An always-visible way out of the session (Duolingo-style close). */}
+          <Pressable
+            onPress={confirmQuit}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Quit lesson"
+            style={({pressed}) => ({opacity: pressed ? 0.5 : 1})}>
+            <Text variant="h3" color={theme.colors.textTertiary}>
+              ✕
+            </Text>
+          </Pressable>
           <ProgressBar value={session.progress} style={styles.flex} />
           {/* Spent hearts stay visible as dimmed glyphs so the cost is legible. */}
           <Text variant="bodyStrong">

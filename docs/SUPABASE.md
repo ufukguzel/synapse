@@ -14,6 +14,15 @@ Files run in filename order:
 | `20260725090000_init_schema.sql` | enums, tables, indexes |
 | `20260725090100_functions_triggers.sql` | `handle_new_user`, `record_activity`, `enroll_vocabulary`, `updated_at` triggers |
 | `20260725090200_rls_policies.sql` | RLS enable + policies + function grants |
+| `20260725090300_table_grants.sql` | table grants |
+| `20260725090400_profile_preferences.sql` | profile language / reminder / a-v preferences |
+| `20260725090500_brain_model.sql` | skill regions, goals, daily tasks, region strength |
+| `20260728120000_lesson_completion.sql` | `lesson_vocabulary` table + `complete_lesson` RPC |
+| `20260728130000_lesson_states.sql` | `lesson_states` progression RPC |
+| `20260728140000..180000_user_stats*.sql` | `user_stats` RPC (streak/XP/goal/counts/favorites) |
+| `20260728150000_new_user_profile.sql` | `handle_new_user` reads language/timezone from metadata |
+| `20260728170000_favorite_index.sql` | partial index for favorites |
+| `20260728200000_course_progress.sql` | `course_progress` RPC |
 
 ## Tables
 
@@ -52,6 +61,30 @@ await supabase.rpc('enroll_vocabulary', {p_vocabulary_id: id});
 
 Both are `security definer` and read `auth.uid()` internally, so the caller cannot write
 to another user's rows. Both are granted to `authenticated` only.
+
+### Added RPCs (2026-08-08)
+
+```ts
+// Finish a lesson: progress + server-side XP + streak + vocabulary enrolment, atomically.
+const {data} = await supabase.rpc('complete_lesson', {p_lesson_id: id, p_score: 90, p_minutes: 6});
+// → { is_first_completion, xp_awarded, enrolled_count, streak }
+
+// Per-lesson gating for a course: locked / available / in_progress / completed.
+await supabase.rpc('lesson_states', {p_course_id: id});
+
+// Everything the profile/home surfaces need, in one call.
+await supabase.rpc('user_stats');
+// → { current_streak, longest_streak, total_xp, minutes_today, minutes_week,
+//     daily_goal_minutes, goal_met_today, lessons_completed, words_learned, words_due, words_favorite }
+
+// Completed vs total lessons per course.
+await supabase.rpc('course_progress');
+```
+
+All four are `security definer`, read `auth.uid()` internally, and are granted to
+`authenticated` only. `complete_lesson` awards XP from `lessons.xp_reward` on the first
+completion only (repeats keep the streak alive but cannot be farmed). Verified end-to-end
+by `supabase/test/run.sh` (`npm run db:test`).
 
 ## Streak rules
 

@@ -191,7 +191,7 @@ export const HomeScreen = () => {
             />
           )}
 
-          {!!strongest && !!weakest && (
+          {!!strongest && !!weakest && strongest.strength > 0 ? (
             <View style={[styles.row, styles.fullWidth]}>
               <View style={{gap: theme.spacing.xxs}}>
                 <Text variant="overline" color={theme.colors.textTertiary}>
@@ -208,6 +208,15 @@ export const HomeScreen = () => {
                 </Text>
               </View>
             </View>
+          ) : (
+            !regions.isLoading &&
+            regionList.length > 0 && (
+              // First run: every region is at 0%, so "strongest" and "focus next"
+              // would point at the same thing. Invite the first lesson instead.
+              <Text variant="body" center color={theme.colors.textSecondary} style={styles.fullWidth}>
+                Complete your first lesson to light up a region.
+              </Text>
+            )
           )}
         </Card>
 

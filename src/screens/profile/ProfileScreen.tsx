@@ -2,6 +2,12 @@ import {StyleSheet, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {Badge, Button, Card, Screen, Text} from '@/components';
+import {
+  DEFAULT_LEARNING_LANGUAGE,
+  findLanguage,
+  LEARNING_LANGUAGES,
+  NATIVE_LANGUAGES,
+} from '@/constants';
 import {useRecentActivity, useStreak} from '@/hooks';
 import {useAuth, useTheme} from '@/providers';
 import {formatMinutes, formatXp} from '@/utils';
@@ -34,6 +40,11 @@ export const ProfileScreen = () => {
 
   const initial = (profile?.display_name ?? user?.email ?? '?').trim().charAt(0).toUpperCase();
 
+  const nativeLang = findLanguage(NATIVE_LANGUAGES, profile?.native_language);
+  const learningLang =
+    findLanguage(LEARNING_LANGUAGES, profile?.learning_language) ??
+    findLanguage(LEARNING_LANGUAGES, DEFAULT_LEARNING_LANGUAGE)!;
+
   return (
     <Screen scroll contentContainerStyle={{padding: theme.spacing.base}}>
       <View style={{gap: theme.spacing.lg}}>
@@ -49,6 +60,10 @@ export const ProfileScreen = () => {
           </View>
           <View style={{flex: 1, gap: theme.spacing.xs}}>
             <Text variant="h2">{profile?.display_name ?? user?.email ?? 'Profile'}</Text>
+            <Text variant="body" color={theme.colors.textSecondary}>
+              {nativeLang ? `${nativeLang.flag} → ` : ''}
+              {learningLang.flag} Learning {learningLang.englishName}
+            </Text>
             {!!profile?.current_level && (
               <Badge label={`Level ${profile.current_level}`} tone="primary" solid />
             )}

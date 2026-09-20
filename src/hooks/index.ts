@@ -6,3 +6,4 @@ export * from './useVocabulary';
 export * from './useCourseOutline';
 export * from './useBrain';
 export * from './useDailyPlan';
+export * from './useMedia';

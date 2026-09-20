@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {View} from 'react-native';
+import {ScrollView} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {Badge, Button, OptionRow, Screen, StepHeader} from '@/components';
@@ -23,35 +23,37 @@ export const LevelSelectScreen = () => {
   };
 
   return (
-    <Screen scroll contentContainerStyle={{padding: theme.spacing.base}}>
-      <View style={{gap: theme.spacing.lg}}>
-        <StepHeader
-          step={2}
-          total={4}
-          title="What's your level?"
-          subtitle="Pick the one that feels closest. You can change it any time."
-        />
+    <Screen>
+      <StepHeader
+        step={2}
+        total={4}
+        title="What's your level?"
+        subtitle="Pick the one that feels closest. You can change it any time."
+      />
 
-        <View style={{gap: theme.spacing.md}}>
-          {CEFR_LEVELS.map(level => (
-            <OptionRow
-              key={level}
-              title={CEFR_LABELS[level].title}
-              description={CEFR_LABELS[level].description}
-              selected={selected === level}
-              onPress={() => setSelected(level)}
-              leading={<Badge label={level} tone="primary" solid={selected === level} />}
-            />
-          ))}
-        </View>
+      <ScrollView
+        style={{flex: 1}}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{gap: theme.spacing.md, paddingVertical: theme.spacing.lg}}>
+        {CEFR_LEVELS.map(level => (
+          <OptionRow
+            key={level}
+            title={CEFR_LABELS[level].title}
+            description={CEFR_LABELS[level].description}
+            selected={selected === level}
+            onPress={() => setSelected(level)}
+            leading={<Badge label={level} tone="primary" solid={selected === level} />}
+          />
+        ))}
+      </ScrollView>
 
-        <Button
-          label="Continue"
-          size="lg"
-          loading={updateProfile.isPending}
-          onPress={onContinue}
-        />
-      </View>
+      <Button
+        label="Continue"
+        size="lg"
+        loading={updateProfile.isPending}
+        onPress={onContinue}
+        style={{marginTop: theme.spacing.sm}}
+      />
     </Screen>
   );
 };

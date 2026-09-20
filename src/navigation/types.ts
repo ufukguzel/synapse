@@ -28,7 +28,7 @@ export type RootStackParamList = {
   CourseDetail: {courseId: string; title?: string};
   Lesson: {lessonId: string; title?: string};
   LessonResult: {lessonId: string; xp: number; accuracy: number; failed?: boolean};
-  VocabularyReview: undefined;
+  VocabularyReview: {mode?: 'due' | 'favorites'} | undefined;
   Settings: undefined;
 };
 

@@ -1,10 +1,10 @@
 import {useState} from 'react';
-import {View} from 'react-native';
+import {Pressable, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useMutation} from '@tanstack/react-query';
 import {Button, Card, EmptyState, ErrorView, LoadingView, ProgressBar, Screen, Text} from '@/components';
 import {vocabularyApi} from '@/api';
-import {useDueVocabulary} from '@/hooks';
+import {useDueVocabulary, useToggleFavorite} from '@/hooks';
 import {useTheme} from '@/providers';
 import {scheduleNextReview} from '@/utils';
 
@@ -24,6 +24,7 @@ export const VocabularyReviewScreen = () => {
 
   const dueQuery = useDueVocabulary();
   const saveReview = useMutation({mutationFn: vocabularyApi.saveReview});
+  const toggleFavorite = useToggleFavorite();
 
   if (dueQuery.isLoading) {
     return <LoadingView />;
@@ -78,6 +79,25 @@ export const VocabularyReviewScreen = () => {
       <ProgressBar value={index / items.length} style={{marginBottom: theme.spacing.lg}} />
 
       <Card style={{flex: 1, justifyContent: 'center', gap: theme.spacing.md}}>
+        {/* Star the word to keep it in a favorites set for later review. */}
+        <Pressable
+          onPress={() =>
+            toggleFavorite.mutate({id: current.id, isFavorite: !current.is_favorite})
+          }
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={
+            current.is_favorite ? 'Remove from favorites' : 'Save to favorites'
+          }
+          style={({pressed}) => ({
+            position: 'absolute',
+            top: theme.spacing.base,
+            right: theme.spacing.base,
+            opacity: pressed ? 0.5 : 1,
+          })}>
+          <Text variant="h3">{current.is_favorite ? '⭐' : '☆'}</Text>
+        </Pressable>
+
         <Text variant="display" center>
           {word?.headword ?? '—'}
         </Text>

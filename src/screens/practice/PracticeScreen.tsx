@@ -2,7 +2,12 @@ import {View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {Button, Card, Screen, StatChip, Text} from '@/components';
-import {useAvailableVocabulary, useDueVocabulary, useEnrollVocabulary} from '@/hooks';
+import {
+  useAvailableVocabulary,
+  useDueVocabulary,
+  useEnrollVocabulary,
+  useFavoriteVocabulary,
+} from '@/hooks';
 import {useAuth, useTheme} from '@/providers';
 import {pluralize} from '@/utils';
 import type {RootStackParamList} from '@/navigation/types';
@@ -18,10 +23,12 @@ export const PracticeScreen = () => {
 
   const due = useDueVocabulary();
   const available = useAvailableVocabulary(profile?.current_level, BATCH_SIZE);
+  const favorites = useFavoriteVocabulary();
   const enroll = useEnrollVocabulary();
 
   const dueCount = due.data?.length ?? 0;
   const availableWords = available.data ?? [];
+  const favoriteCount = favorites.data?.length ?? 0;
 
   const onAddWords = () => {
     if (!availableWords.length) {
@@ -79,6 +86,28 @@ export const PracticeScreen = () => {
               Could not add the words. Please try again.
             </Text>
           )}
+        </Card>
+
+        {/* Starred words, drillable any time regardless of the SRS schedule. */}
+        <Card style={{gap: theme.spacing.md}}>
+          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+            <Text variant="h3">Favorites</Text>
+            <Text variant="h3">⭐</Text>
+          </View>
+          <Text variant="body" color={theme.colors.textSecondary}>
+            {favoriteCount > 0
+              ? `${pluralize(favoriteCount, 'word')} you starred. Drill them whenever you like.`
+              : 'Star a word during a review to save it here for extra practice.'}
+          </Text>
+          <Button
+            label={
+              favoriteCount > 0 ? `Review ${pluralize(favoriteCount, 'favorite')}` : 'No favorites yet'
+            }
+            variant="secondary"
+            disabled={favoriteCount === 0}
+            loading={favorites.isLoading}
+            onPress={() => navigation.navigate('VocabularyReview', {mode: 'favorites'})}
+          />
         </Card>
       </View>
     </Screen>

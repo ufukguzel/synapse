@@ -1,12 +1,15 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {Pressable, View} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import {useMutation} from '@tanstack/react-query';
 import {Button, Card, EmptyState, ErrorView, LoadingView, ProgressBar, Screen, Text} from '@/components';
-import {vocabularyApi} from '@/api';
-import {useDueVocabulary, useToggleFavorite} from '@/hooks';
+import {vocabularyApi, type DueReviewItem} from '@/api';
+import {useDueVocabulary, useFavoriteVocabulary, useToggleFavorite} from '@/hooks';
 import {useTheme} from '@/providers';
 import {scheduleNextReview} from '@/utils';
+import type {RootStackParamList} from '@/navigation/types';
+
+type Route = RouteProp<RootStackParamList, 'VocabularyReview'>;
 
 const QUALITY_BUTTONS = [
   {label: 'Again', quality: 1, variant: 'danger' as const},
@@ -18,29 +21,50 @@ const QUALITY_BUTTONS = [
 export const VocabularyReviewScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation();
+  const {params} = useRoute<Route>();
+  const mode = params?.mode ?? 'due';
+  const isFavorites = mode === 'favorites';
 
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
+  // Snapshot of the queue, taken once, so the deck doesn't reshuffle mid-review
+  // when a background refetch (e.g. after un-starring) changes the source list.
+  const [queue, setQueue] = useState<DueReviewItem[] | null>(null);
+  // Instant star state, keyed by row id; persistence happens in the background.
+  const [favOverrides, setFavOverrides] = useState<Record<string, boolean>>({});
 
   const dueQuery = useDueVocabulary();
+  const favQuery = useFavoriteVocabulary();
+  const query = isFavorites ? favQuery : dueQuery;
+
   const saveReview = useMutation({mutationFn: vocabularyApi.saveReview});
   const toggleFavorite = useToggleFavorite();
 
-  if (dueQuery.isLoading) {
+  useEffect(() => {
+    if (query.data && queue === null) {
+      setQueue(query.data);
+    }
+  }, [query.data, queue]);
+
+  if (query.isLoading && queue === null) {
     return <LoadingView />;
   }
-  if (dueQuery.isError) {
-    return <ErrorView error={dueQuery.error} onRetry={dueQuery.refetch} />;
+  if (query.isError) {
+    return <ErrorView error={query.error} onRetry={query.refetch} />;
   }
 
-  const items = dueQuery.data ?? [];
+  const items = queue ?? [];
   const current = items[index];
 
   if (!items.length) {
     return (
       <EmptyState
-        title="All caught up"
-        description="No words are due for review right now. Come back later."
+        title={isFavorites ? 'No favorites yet' : 'All caught up'}
+        description={
+          isFavorites
+            ? 'Star words during a review to build a set you can drill any time.'
+            : 'No words are due for review right now. Come back later.'
+        }
         actionLabel="Go back"
         onAction={navigation.goBack}
       />
@@ -48,10 +72,11 @@ export const VocabularyReviewScreen = () => {
   }
 
   if (!current) {
+    const noun = isFavorites ? 'favorite' : 'word';
     return (
       <EmptyState
         title="Review finished"
-        description={`You reviewed ${items.length} words.`}
+        description={`You reviewed ${items.length} ${noun}${items.length === 1 ? '' : 's'}.`}
         actionLabel="Done"
         onAction={navigation.goBack}
       />
@@ -72,6 +97,13 @@ export const VocabularyReviewScreen = () => {
     setIndex(prev => prev + 1);
   };
 
+  const isFavorite = favOverrides[current.id] ?? current.is_favorite;
+  const onToggleFavorite = () => {
+    const nextValue = !isFavorite;
+    setFavOverrides(prev => ({...prev, [current.id]: nextValue}));
+    toggleFavorite.mutate({id: current.id, isFavorite: nextValue});
+  };
+
   const word = current.vocabulary_items;
 
   return (
@@ -81,21 +113,17 @@ export const VocabularyReviewScreen = () => {
       <Card style={{flex: 1, justifyContent: 'center', gap: theme.spacing.md}}>
         {/* Star the word to keep it in a favorites set for later review. */}
         <Pressable
-          onPress={() =>
-            toggleFavorite.mutate({id: current.id, isFavorite: !current.is_favorite})
-          }
+          onPress={onToggleFavorite}
           hitSlop={12}
           accessibilityRole="button"
-          accessibilityLabel={
-            current.is_favorite ? 'Remove from favorites' : 'Save to favorites'
-          }
+          accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Save to favorites'}
           style={({pressed}) => ({
             position: 'absolute',
             top: theme.spacing.base,
             right: theme.spacing.base,
             opacity: pressed ? 0.5 : 1,
           })}>
-          <Text variant="h3">{current.is_favorite ? '⭐' : '☆'}</Text>
+          <Text variant="h3">{isFavorite ? '⭐' : '☆'}</Text>
         </Pressable>
 
         <Text variant="display" center>

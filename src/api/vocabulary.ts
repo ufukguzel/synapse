@@ -20,6 +20,21 @@ export const vocabularyApi = {
     return (data ?? []) as unknown as DueReviewItem[];
   },
 
+  /** Every word the user has starred, regardless of when it is next due. */
+  async favorites(userId: string, limit = 50): Promise<DueReviewItem[]> {
+    const {data, error} = await supabase
+      .from('user_vocabulary')
+      .select('*, vocabulary_items(*)')
+      .eq('user_id', userId)
+      .eq('is_favorite', true)
+      .order('due_at', {ascending: true})
+      .limit(limit);
+    if (error) {
+      throw error;
+    }
+    return (data ?? []) as unknown as DueReviewItem[];
+  },
+
   async saveReview(params: {
     id: string;
     easeFactor: number;
